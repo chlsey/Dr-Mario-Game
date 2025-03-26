@@ -104,25 +104,48 @@ game_loop:
 # a2: orientation, 0 for h, 1 for v
 # calling a3: 'a', 'd', 's', 'w'
 keyboard_input:
-    addi $sp $sp -4
-    sw $ra 0($sp)
-    
-    lw $t1, 4($t0)                # Load second word from keyboard
-    
-    beq $t1, 'a', move_left       # switch to move_left
-    
-    beq $t1, 'd', move_right      # switch to move_right
-    
-    beq $t1, 's', move_down       # switch to move_down
-    
-    beq $t1, 'w', rotate          # switch to rotate
-    
-    beq $t1, 'q', quit            # switch to quit branch
+    addi $sp, $sp, -4       # Push $ra onto stacsk
+    sw $ra, 0($sp)
 
-    lw $ra 0($sp)
-    addi $sp $sp 4
+    lw $t1, 4($t0)          # Load second word from keyboard
+    
+    beq $t1, 'a', call_move_left  
 
-    jr $ra
+    beq $t1, 'd', call_move_right 
+    
+    beq $t1, 's', call_move_down  
+    
+    beq $t1, 'w', call_rotate     
+    
+    beq $t1, 'q', call_quit       
+
+    j keyboard_end          # If no valid input, skip function calls
+
+  call_move_left:
+      jal move_left   
+      j keyboard_end
+  
+  call_move_right:
+      jal move_right  
+      j keyboard_end
+  
+  call_move_down:
+      jal move_down   
+      j keyboard_end
+  
+  call_rotate:
+      jal rotate      
+      j keyboard_end
+  
+  call_quit:
+      jal quit        
+      j keyboard_end
+  
+  keyboard_end:
+      lw $ra, 0($sp)          # Restore $ra
+      addi $sp, $sp, 4        # Pop stack
+      jr $ra     
+
 
 
 move_left:
@@ -232,7 +255,7 @@ move_down:
   la $t3 CAPSULE_O           # get the memory location of ORIENTATION
   lw $t0 0($t3)              # get the y coordinate of the curr capsule
 
-  # jal ycollision
+  jal ycollision
   
   beq $t1, $zero, move_left_end   # check if we are at bottom bottle wall or block, if true then we skip over to the end (t1 is set to 0 if collision)
 
@@ -264,18 +287,33 @@ rotate:
   addi $sp $sp -4            # push return value onto stack
   sw $ra 0($sp)
 
+  jal rotate_collision
+
+  beq $t1 $zero rotate_end   # jump to end of rotation if there is a collision
+
   la $t3 CAPSULE_O           # getting current capsule orientation
   lw $t1 0($t3)
 
-  beq $t1 $zero handle_h     # jump to handle_h branch in helpers section below
+  beq $t1 $zero call_handle_h     # jump to handle_h branch in helpers section below
 
   li $t3 1
-  beq $t1 $t3 handle_v       # jump to handle v branch in helpers section below
+  beq $t1 $t3 call_handle_v       # jump to handle v branch in helpers section below
+
+  call_handle_h:
+    jal handle_h
+    j rotate_end
+
+  call_handle_v:
+    jal handle_v
+    j rotate_end
+  
+  rotate_end: 
   
   lw $ra 0($sp)
   addi $sp $sp 4
 
   jr $ra
+  
   
 
 
@@ -325,7 +363,7 @@ left_collision:
 
   beq $t2 $zero left_h_collision    # checking to see if it's horizonal orientation and jump
 
-  jal left_v_collision              # else jump to vertical branch          
+  j left_v_collision              # else jump to vertical branch          
 
   left_h_collision:
     addi $t7 $t7 -12                 # moving to left capsule location
@@ -334,7 +372,7 @@ left_collision:
     li $t3 0x266533
     beq $t3 $t2 set_left_collision_end   # no collision!
 
-    jal set_left_collision               # else yes collision :(
+    j set_left_collision               # else yes collision :(
 
   
   left_v_collision:
@@ -356,7 +394,7 @@ left_collision:
   set_left_collision:
     li $t1 0
     
-    jal left_collision_return
+    j left_collision_return
     
   set_left_collision_end:
     li $t1 1
@@ -403,7 +441,7 @@ right_collision:
 
   beq $t2 $zero right_h_collision    # checking to see if it's horizonal orientation and jump
 
-  jal right_v_collision              # else jump to vertical branch          
+  j right_v_collision              # else jump to vertical branch          
 
   right_h_collision:
     addi $t7 $t7 24                 # moving to left capsule location
@@ -412,7 +450,7 @@ right_collision:
     li $t3 0x266533
     beq $t3 $t2 set_right_collision_end   # no collision!
 
-    jal set_right_collision               # else yes collision :(
+    j set_right_collision               # else yes collision :(
 
   
   right_v_collision:
@@ -422,7 +460,7 @@ right_collision:
     li $t3 0x266533
     beq $t3 $t2 v_left_col_check2 
 
-    jal set_left_collision
+    j set_left_collision
 
     v_right_col_check2:
       addi $t7 $t7 -768                 # moving to check if upper half has space to move
@@ -433,7 +471,7 @@ right_collision:
   set_right_collision:
     li $t1 0
     
-    jal right_collision_return
+    j right_collision_return
     
   set_right_collision_end:
     li $t1 1
@@ -447,52 +485,157 @@ right_collision:
   
 
 
+
 ycollision:
-
-
-
-
-
-erase_capsule:
   addi $sp $sp -4            # push return value onto stack
   sw $ra 0($sp)
 
-  la $t3 CAPSULE_X           # get the memory location of CAPSULE_Y
-  lw $a0 0($t3)              # get the x coordinate of the curr capsule
+  la $t3 CAPSULE_X           # getting x value
+  lw $t0 0($t3)
+
+  la $t3 CAPSULE_Y           # getting y value (kate)
+  lw $t1 0($t3)
+
+  la $t3 CAPSULE_O           # getting orientation
+  lw $t2 0($t3)
+
+  la $t3 ADDR_DSPL           # getting the board start address
+  lw $t4 0($t3)
   
-  la $t3 CAPSULE_Y           # get the memory location of CAPSULE_Y
-  lw $a1 0($t3)              # get the y coordinate of the curr capsule
+  # getting the memory address of our capsule location
+  
+  addi $t5 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t6 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
 
-  la $t3 CAPSULE_O           # get the memory location of ORIENTATION
-  lw $t0 0($t3)              # get the orientation of capsule
+  multu $t5 $t0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t6 $t1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
 
-  beq $t0 $zero horizontal_erase   # jump to horizontal erase line
+  add $t7 $t4 $v0                 # setting the horizontal offset
+  add $t7 $t7 $v1                 # setting the vertical offset
+  
+  # register t7 now holds the correct memory address of our capsule location
+  
+  beq $t2 $zero y_h_collision    # checking to see if it's horizonal orientation and jump
 
-  jal vertical_erase               # else jump to vertical erase line
-
-  horizontal_erase:
-    li $a2 6
-    li $a3 3
+  jal y_v_collision              # else jump to vertical branch  
+  
+  
+  y_h_collision:
+    addi $t7 $t7 768               # moving to bottom capsule location (3 rows down = 256*3 = 768)
+    lw $t2 0($t7)                   # loading t2 with the next pixel location (kate: acc storing the colour at that location)
+  
+    li $t3 0x266533
+    beq $t3 $t2 h_y_col_check2       # if equal, then new move valid ; if not equal, then collision
+    j set_y_collision
     
-    jal vertical_erase_end
+    h_y_col_check2:             # this one checking if second half of pill collides with anything
+    addi $t7 $t7 12             # moving to ghost location of second half of pill
+    lw $t2 0($t7)               # loading t2 with next pixel location (of second half)
+    
+    beq $t3 $t2 set_y_collision_end   # see if second half has collision ; if equal, then no collision; if not equal, then collision
+    
+    j set_y_collision
+  
+  
+  y_v_collision:            # in vertical orientation, checking if down movement causes collision
+    addi $t7 $t7 768                 # moving to location of potential next move
+    lw $t2 0($t7)                   # loading t2 with the next pixel location
 
-  vertical_erase:
-    li $a2 3
-    li $a3 6
+    li $t3 0x266533                 # kate - dark green background
+    beq $t3 $t2 set_y_collision_end   # no collision!
 
-    addi $a1 $a1 -3
+    j set_y_collision               # else yes collision :(
+  
+  
+    set_y_collision:
+      li $t1 0
+      j y_collision_return
+    
+    set_y_collision_end:
+      li $t1 1                    # 1 in t1 = no collision
+     
+    y_collision_return:
+      lw $ra 0($sp)                     # get $ra back
+      addi $sp $sp 4
 
-  vertical_erase_end:
+      jr $ra
 
-  li $t1 0x266533                   # set bg color
 
-  jal draw_rect                     # ERASE
 
+
+rotate_collision:
+  addi $sp $sp -4            # push return value onto stack
+  sw $ra 0($sp)
+
+  la $t3 CAPSULE_X           # getting x value
+  lw $t0 0($t3)
+
+  la $t3 CAPSULE_Y           # getting y value
+  lw $t1 0($t3)
+
+  la $t3 CAPSULE_O           # getting orientation
+  lw $t2 0($t3)
+
+  la $t3 ADDR_DSPL           # getting the board start address
+  lw $t4 0($t3)
+
+
+  # getting the memory address of our capsule location
+  
+  addi $t5 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t6 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t5 $t0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t6 $t1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  add $t7 $t4 $v0                 # setting the horizontal offset
+  add $t7 $t7 $v1                 # setting the vertical offset
+  
+  # register t7 now holds the correct memory address of our capsule location
+
+  li $t3 0x266533                 # bg color to check
+
+  beq $t2 $zero rotate_h_collision
+
+  j rotate_v_collision
+
+  rotate_h_collision:
+    addi $t7 $t7 -768
+    lw $t2 0($t7)
+    beq $t2 $t3 set_rotate_collision_end
+
+    j set_rotate_collision
+
+
+  rotate_v_collision:
+    addi $t7 $t7 12
+    lw $t2 0($t7)
+    beq $t2 $t3 set_rotate_collision_end
+
+    j set_rotate_collision
+    
+  set_rotate_collision:
+    li $t1 0
+    
+    j rotate_collision_end
+    
+  set_rotate_collision_end:
+    li $t1 1
+  
+    
+  rotate_collision_end:
+    
   lw $ra 0($sp)                     # get $ra back
   addi $sp $sp 4
 
   jr $ra
-  
+
 
 
 handle_h:
@@ -580,6 +723,49 @@ handle_v:
   jr $ra
   
 
+
+
+
+erase_capsule:
+  addi $sp $sp -4            # push return value onto stack
+  sw $ra 0($sp)
+
+  la $t3 CAPSULE_X           # get the memory location of CAPSULE_Y
+  lw $a0 0($t3)              # get the x coordinate of the curr capsule
+  
+  la $t3 CAPSULE_Y           # get the memory location of CAPSULE_Y
+  lw $a1 0($t3)              # get the y coordinate of the curr capsule
+
+  la $t3 CAPSULE_O           # get the memory location of ORIENTATION
+  lw $t0 0($t3)              # get the orientation of capsule
+
+  beq $t0 $zero horizontal_erase   # jump to horizontal erase line
+
+  jal vertical_erase               # else jump to vertical erase line
+
+  horizontal_erase:
+    li $a2 6
+    li $a3 3
+    
+    jal vertical_erase_end
+
+  vertical_erase:
+    li $a2 3
+    li $a3 6
+
+    addi $a1 $a1 -3
+
+  vertical_erase_end:
+
+  li $t1 0x266533                   # set bg color
+
+  jal draw_rect                     # ERASE
+
+  lw $ra 0($sp)                     # get $ra back
+  addi $sp $sp 4
+
+  jr $ra
+  
 
 
 
@@ -789,8 +975,9 @@ capsule_5:
 
 
 
+
 ####################################
-##  Horz Generic Capsule Function  ##
+##    Generic Capsule Function    ##
 ####################################
 # Draws a capsule horizontally
 # Input parameters:
@@ -805,17 +992,29 @@ capsule:
   la $t3 CAPSULE_O
   lw $t1 0($t3)                   # getting orientation of the capsule
   
-  beq $t1 $zero draw_horz_capsule # jump to draw_horz0 line
+  beq $t1 $zero call_draw_horz_capsule # jump to draw_horz0 line
 
   li $t2 1
   
-  beq $t1 $t2 draw_vert_capsule   # jump to draw_horz0 line
+  beq $t1 $t2 call_draw_vert_capsule   # jump to draw_horz0 line
+
+  capsule_end:
 
   lw $ra, 0($sp)
   addi $sp, $sp, 4                # Deallocate stack space
   
   jr $ra                          # return back to specific capsule
 
+
+  call_draw_horz_capsule:
+    jal draw_horz_capsule
+    j capsule_end
+
+
+  call_draw_vert_capsule:
+    jal draw_vert_capsule   
+    j capsule_end
+    
 
 
 
