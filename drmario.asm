@@ -79,8 +79,17 @@ main:
 # a2: orientation, 0 for h, 1 for v
 game_loop:
     # 1: drawing the capsule at the bottle neck
-    li $a2 0                      # load in horizontal orientation
- 
+
+    jal ycollision
+
+    beq $t0 $zero draw_new_capsule
+    j draw_new_capsule_end
+
+    draw_new_capsule:
+      jal draw_start_capsule
+
+    draw_new_capsule_end:
+
     # check keyboard action for this loop
     lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
     lw $t8, 0($t0)                  # Load first word from keyboard
@@ -551,11 +560,11 @@ ycollision:
   
   
     set_y_collision:
-      li $t1 0
+      li $t0 0
       j y_collision_return
     
     set_y_collision_end:
-      li $t1 1                    # 1 in t1 = no collision
+      li $t0 1                    # 1 in t1 = no collision
      
     y_collision_return:
       lw $ra 0($sp)                     # get $ra back
@@ -786,7 +795,6 @@ draw_start_capsule:
   addi $sp, $sp, -4                # Move the stack pointer to an empty location
   sw $ra, 0($sp)                  # Store $ra on the stack for safe keeping.
 
-
   # generating a random value for the color + orientation
   addi $a0 $zero 29               # setting up x,y coordinates of the capsule
   addi $a1 $zero 13
@@ -796,6 +804,12 @@ draw_start_capsule:
   
   la $t3, CAPSULE_Y               # loading y coordinate of starting capsule to memory
   sw $a1 0($t3)
+
+  # setting horizontal orientation
+  li $a2 0 
+  la $t3, CAPSULE_O               # loading orientation address
+  sw $a2 0($t3)                   # writing orientation to be default horizontal
+
   
   li $v0, 42
   li $a0, 0
