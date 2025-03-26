@@ -27,7 +27,6 @@ ADDR_KBRD:
     .word 0xffff0000
 
 
-
 ##############################################################################
 # Mutable Data
 ##############################################################################
@@ -190,7 +189,7 @@ move_right:
   la $t3 CAPSULE_O           # get the memory location of ORIENTATION
   lw $t0 0($t3)              # get the y coordinate of the curr capsule
 
-  # jal xcollision
+  jal right_collision
   
   beq $t1, $zero, move_right_end   # check if we are at left bottle wall, if true then we skip over to the end (t1 is set to 0 if collision)
 
@@ -343,11 +342,16 @@ left_collision:
     lw $t2 0($t7)                   # loading t2 with the next pixel location
 
     li $t3 0x266533
-    beq $t3 $t2 set_left_collision_end   # no collision!
+    beq $t3 $t2 v_left_col_check2 
+
+    jal set_left_collision
 
     v_left_col_check2:
-      addi $t7 $t7 -12                 # moving to left capsule location
+      addi $t7 $t7 -768                 # moving to check if upper half has space to move
       lw $t2 0($t7)                   # loading t2 with the next pixel location
+
+      beq $t3 $t2 set_left_collision_end
+      
 
   set_left_collision:
     li $t1 0
@@ -365,9 +369,85 @@ left_collision:
   jr $ra
   
 
+right_collision:
+  addi $sp $sp -4            # push return value onto stack
+  sw $ra 0($sp)
+
+  la $t3 CAPSULE_X           # getting x value
+  lw $t0 0($t3)
+
+  la $t3 CAPSULE_Y           # getting x value
+  lw $t1 0($t3)
+
+  la $t3 CAPSULE_O           # getting orientation
+  lw $t2 0($t3)
+
+  la $t3 ADDR_DSPL           # getting the board start address
+  lw $t4 0($t3)
+
+  # getting the memory address of our capsule location
+  
+  addi $t5 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t6 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t5 $t0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t6 $t1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  add $t7 $t4 $v0                 # setting the horizontal offset
+  add $t7 $t7 $v1                 # setting the vertical offset
+  
+  # register t7 now holds the correct memory address of our capsule location
+
+  beq $t2 $zero right_h_collision    # checking to see if it's horizonal orientation and jump
+
+  jal right_v_collision              # else jump to vertical branch          
+
+  right_h_collision:
+    addi $t7 $t7 24                 # moving to left capsule location
+    lw $t2 0($t7)                   # loading t2 with the next pixel location
+
+    li $t3 0x266533
+    beq $t3 $t2 set_right_collision_end   # no collision!
+
+    jal set_right_collision               # else yes collision :(
+
+  
+  right_v_collision:
+    addi $t7 $t7 12                 # moving to right capsule location
+    lw $t2 0($t7)                   # loading t2 with the next pixel location
+
+    li $t3 0x266533
+    beq $t3 $t2 v_left_col_check2 
+
+    jal set_left_collision
+
+    v_right_col_check2:
+      addi $t7 $t7 -768                 # moving to check if upper half has space to move
+      lw $t2 0($t7)                   # loading t2 with the next pixel location
+
+      beq $t3 $t2 set_left_collision_end   # see if second half has collision
+      
+  set_right_collision:
+    li $t1 0
+    
+    jal right_collision_return
+    
+  set_right_collision_end:
+    li $t1 1
+  
+  right_collision_return:
+    
+  lw $ra 0($sp)                     # get $ra back
+  addi $sp $sp 4
+
+  jr $ra
+  
+
+
 ycollision:
-
-
 
 
 
