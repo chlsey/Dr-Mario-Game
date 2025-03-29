@@ -15,6 +15,24 @@
 # - Base Address for Display:   0x10008000 ($gp)
 ##############################################################################
 
+
+##############################################################################
+# Macros
+##############################################################################
+# The macro for pushing a value onto the stack.
+.macro push (%reg) 
+    addi $sp, $sp, -4       # move the stack pointer to the next empty spot
+    sw %reg, 0($sp)         # push the register value onto the top of the stack
+.end_macro
+
+# The macro for popping a value off the stack.
+.macro pop (%reg) 
+    lw %reg, 0($sp)         # fetch the top element from the stack    
+    addi $sp, $sp, 4        # move the stack pointer to the top element of the stack.
+.end_macro
+
+
+
     .data
 ##############################################################################
 # Immutable Data
@@ -25,6 +43,14 @@ ADDR_DSPL:
 # The address of the keyboard. Don't forget to connect it!
 ADDR_KBRD:
     .word 0xffff0000
+
+# The address of the additional grid for removal function
+ADD_GRID:
+    .word 0x10010008
+
+# The address of the orientation grid for keeping track of capsule halves
+ORI_GRID:
+    .space 16384
 
 
 ##############################################################################
@@ -80,12 +106,22 @@ main:
 game_loop:
     # 1: drawing the capsule at the bottle neck
 
-    jal ycollision
+    jal ycollision  # sets t0 to 0 if there is a vertical collision
 
-    beq $t0 $zero draw_new_capsule
+    beq $t0 $zero handle_collision
     j draw_new_capsule_end
 
-    draw_new_capsule:
+    handle_collision:
+
+      li $a0 20
+      li $a1 16
+      li $a2 24
+      li $a3 39
+    
+      jal copy_grid # copies current state of playing field to ADD_GRID
+      
+      # jal remove_rows_columns
+      
       jal draw_start_capsule
 
     draw_new_capsule_end:
@@ -154,7 +190,6 @@ keyboard_input:
       lw $ra, 0($sp)          # Restore $ra
       addi $sp, $sp, 4        # Pop stack
       jr $ra     
-
 
 
 move_left:
@@ -780,7 +815,105 @@ erase_capsule:
 
 
 
+##########################
+##  Copy Grid Function  ##
+##########################
+# Input parameters:
+# - $a0: X coordinate of the top left corner of the rectangle
+# - #a1: Y coordinate of the top left corner of the rectangle
+# - $a2: Width of the rectangle to copy
+# - $a3: Height of the rectangle to copy
+copy_grid:
+  add $t5 $zero $zero       # setting the loop variable to 0
+  copy_line_start:
+    push ($ra)
+    push ($t5)
+    push ($a0)
+    push ($a1)
 
+    jal copy_line
+
+    pop ($a1)
+    pop ($a0)
+    pop ($t5)
+    pop ($ra)
+
+    addi $t5 $t5 1                  # increment loop var by 1 after drawing one line
+    addi $a1 $a1 1                  # increment y coordinate after each line
+    
+    beq $t5, $a3, copy_line_end
+    j copy_line_start
+
+  copy_line_end:
+  
+  jr $ra 
+    
+
+
+# Copy grid helper
+copy_line:
+  add $t5 $zero $zero               # setting the counter to 0
+
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  lw $t6, ADDR_DSPL                    # Load base address of source grid 
+
+  lw $t9, ADD_GRID
+
+  # Compute starting positions
+  add $t7, $t6, $v0                    # Source: base + X offset
+  add $t7, $t7, $v1                    # Source: base + Y offset
+
+  add $t8, $t9, $v0                    # Destination: base + X offset
+  add $t8, $t8, $v1                    # Destination: base + Y offset
+
+
+  pixel_copy_start:         
+    lw $t1 0( $t7 )
+    sw $t1 0( $t8 )                # paint the current current location to 
+    
+    addi $t5 $t5 1                  # add 1 to the counter
+    addi $t7, $t7, 4                # move to the next pixel in the row for playing field
+    addi $t8, $t8, 4                # move to the next pixel in the row for additional grid
+    
+    beq $t5, $a2, pixel_copy_end     # break out of the loop if you hit the final pixel
+    j pixel_copy_start              # otherwise, jump to the top of the loop
+  pixel_copy_end:                   # the label for the end of the pixel drawing loop
+  
+  jr $ra 
+
+
+
+
+
+
+
+#######################################
+##  The Row/Column Removal Function  ##
+#######################################
+# Input parameters:
+# - $a0: X coordinate of the top left corner of the capsule
+# - #a1: Y coordinate of the top left corner of the capsule
+remove_rows_columns:
+  push ($ra)
+  
+
+
+
+
+
+  pop ($ra)
+  jr $ra
+
+
+  
 
 
 ####################################
@@ -1066,33 +1199,33 @@ draw_horz_capsule:
 
 # me doing extra things to get the pills to look **interesting**~~~
 
-  la $t3, COLOR1     # get color 1
-  lw $t1 0($t3)
+  # la $t3, COLOR1     # get color 1
+  # lw $t1 0($t3)
 
-  la $t3, CAPSULE_X    # Load the address of CAPSULE_X
-  lw $a0, 0($t3)       # get the x coordinate of the curr capsule into CAPSULE_X
+  # la $t3, CAPSULE_X    # Load the address of CAPSULE_X
+  # lw $a0, 0($t3)       # get the x coordinate of the curr capsule into CAPSULE_X
 
-  la $t3, CAPSULE_Y    # Load the address of CAPSULE_X
-  lw $a1, 0($t3)       # get y coordinate of the curr capsule into CAPSULE_Y
+  # la $t3, CAPSULE_Y    # Load the address of CAPSULE_X
+  # lw $a1, 0($t3)       # get y coordinate of the curr capsule into CAPSULE_Y
 
-  addi $a0 $a0 3
-  li $a2 1
+  # addi $a0 $a0 3
+  # li $a2 1
 
-  jal draw_hline
+  # jal draw_hline
 
-  la $t3, COLOR2     # get color 2
-  lw $t1 0($t3)
+  # la $t3, COLOR2     # get color 2
+  # lw $t1 0($t3)
 
-  la $t3, CAPSULE_X    # Load the address of CAPSULE_X
-  lw $a0, 0($t3)       # get the x coordinate of the curr capsule into CAPSULE_X
+  # la $t3, CAPSULE_X    # Load the address of CAPSULE_X
+  # lw $a0, 0($t3)       # get the x coordinate of the curr capsule into CAPSULE_X
 
-  la $t3, CAPSULE_Y    # Load the address of CAPSULE_X
-  lw $a1, 0($t3)       # get y coordinate of the curr capsule into CAPSULE_Y
+  # la $t3, CAPSULE_Y    # Load the address of CAPSULE_X
+  # lw $a1, 0($t3)       # get y coordinate of the curr capsule into CAPSULE_Y
 
-  addi $a0 $a0 2
-  addi $a1 $a1 2
+  # addi $a0 $a0 2
+  # addi $a1 $a1 2
 
-  jal draw_hline
+  # jal draw_hline
 
   # end of doing ~~~extra things~~~~
 
@@ -1140,32 +1273,32 @@ draw_vert_capsule:
 
   # me doing extra things to get the pills to look **interesting**~~~
 
-  la $t3, COLOR2     # get color 2
-  lw $t1 0($t3)
+  # la $t3, COLOR2     # get color 2
+  # lw $t1 0($t3)
 
-  la $t3, CAPSULE_X    # Load the address of CAPSULE_X
-  lw $a0, 0($t3)       # get the x coordinate of the curr capsule into CAPSULE_X
+  # la $t3, CAPSULE_X    # Load the address of CAPSULE_X
+  # lw $a0, 0($t3)       # get the x coordinate of the curr capsule into CAPSULE_X
 
-  la $t3, CAPSULE_Y    # Load the address of CAPSULE_X
-  lw $a1, 0($t3)       # get y coordinate of the curr capsule into CAPSULE_Y
+  # la $t3, CAPSULE_Y    # Load the address of CAPSULE_X
+  # lw $a1, 0($t3)       # get y coordinate of the curr capsule into CAPSULE_Y
 
-  addi $a1 $a1 -1
-  li $a2 1
+  # addi $a1 $a1 -1
+  # li $a2 1
 
-  jal draw_hline
+  # jal draw_hline
 
-  la $t3, COLOR1     # get color 1
-  lw $t1 0($t3)
+  # la $t3, COLOR1     # get color 1
+  # lw $t1 0($t3)
 
-  la $t3, CAPSULE_X    # Load the address of CAPSULE_X
-  lw $a0, 0($t3)       # get the x coordinate of the curr capsule into CAPSULE_X
+  # la $t3, CAPSULE_X    # Load the address of CAPSULE_X
+  # lw $a0, 0($t3)       # get the x coordinate of the curr capsule into CAPSULE_X
 
-  la $t3, CAPSULE_Y    # Load the address of CAPSULE_X
-  lw $a1, 0($t3)       # get y coordinate of the curr capsule into CAPSULE_Y
+  # la $t3, CAPSULE_Y    # Load the address of CAPSULE_X
+  # lw $a1, 0($t3)       # get y coordinate of the curr capsule into CAPSULE_Y
 
-  addi $a0 $a0 2
+  # addi $a0 $a0 2
 
-  jal draw_hline
+  # jal draw_hline
 
   # end of doing ~~~extra things~~~~
 
