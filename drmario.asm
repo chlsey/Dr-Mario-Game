@@ -117,12 +117,56 @@ game_loop:
       li $a1 16
       li $a2 24
       li $a3 39
-    
-      jal copy_grid # copies current state of playing field to ADD_GRID
+
+      jal copy_grid
+
+      # kate
+      li $a0 20         # X coord of top left corner of dark green rectangle
+      li $a1 16         # Y coord of top left corner of dark green rectangle
+      li $a2 0xDBF68F       # check for sour apple
+      jal remove_rows
       
-      # jal remove_rows_columns
+      li $a0 20
+      li $a1 16
+      li $a2 0xDBF68F
+      jal remove_columns
       
-      jal draw_start_capsule
+      li $a0 20
+      li $a1 16
+      li $a2 0xF16838       # check for orange
+      jal remove_rows
+      
+      li $a0 20
+      li $a1 16
+      li $a2 0xF16838
+      jal remove_columns
+      
+      li $a0 20
+      li $a1 16
+      li $a2 0xFFCE55       # check for yellow
+      jal remove_rows
+      
+      li $a0 20
+      li $a1 16
+      li $a2 0xFFCE55
+      jal remove_columns
+
+      beq $t0 $zero collision_end
+      
+      li $a0 20
+      li $a1 16
+      li $a2 24
+      li $a3 39
+
+      jal handle_drop
+
+      j handle_collision
+
+      
+      collision_end:
+
+      jal draw_start_capsule  # start the next capsule after everything is done
+      
 
     draw_new_capsule_end:
 
@@ -812,6 +856,303 @@ erase_capsule:
   
 
 
+############################
+##  Handle Drop Function  ##
+############################
+# (a0, a1) starting coordinates, a2 width, a3 length, returns a 0 in t9 if there was no drop made, 1 if there was
+handle_drop:
+  add $t6, $a1, $zero         # Store initial y-coordinate (16)
+  addi $a1, $zero, 49         # Set start y-coordinate
+  
+  drop_row_start:
+    push ($ra)
+    push ($a0)
+    push ($a1)
+    push ($t6)
+
+    jal drop_row
+
+    pop ($t6)
+    pop ($a1)
+    pop ($a0)
+    pop ($ra)
+
+    addi $t5, $t5, 1         # Increment loop counter (optional)
+    addi $a1, $a1, -3        # Decrease y-coordinate by 3
+
+    bne $a1, 16, drop_row_start  # Keep looping until a1 reaches 16
+
+  drop_row_end:
+    jr $ra
+
+
+
+
+# given the starting coordinate of a row (a0, a1), and length (a2), drop everything in the row 
+# down by one capsule area if the area below them is background color (and their half allows them to)
+drop_row:
+  li $t9 0
+  
+  push ($ra)
+
+  # counter initialization
+  li $s5 0
+
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  la $t6, ADDR_DSPL                    # Load base address of playfield
+  lw $t0 0($t6)
+
+  la $t5, ORI_GRID                    # Load base address of orientation field
+
+  # playfield
+  add $s7, $t0, $v0                    # Source: base + X offset
+  add $s7, $s7, $v1                    # Source: base + Y offset
+
+  # orientation grid
+  add $t8, $t5, $v0                    # Source: base + X offset
+  add $t8, $t8, $v1                    # Source: base + Y offset
+
+
+  block_drop_start:
+    push ($a0)
+    push ($a1)
+    push ($a2)
+
+    li $t3 0x266533                      # loading in background color to do checks
+    
+    lw $t5 0($s7)                      # getting color stored at the current block to see if it's colored
+
+    beq $t5 $t3 increment_next         # if it's background colored, move to next area
+
+    lw $t4 0($t8)                      # checking orientation value (stored in $t4)
+    li $t5 -1                          # checking to see if it's a virus using t5
+    beq $t5 $t4 increment_next         # if they are equal, then it's virus and we move to next block
+
+    # else we are at a capsule and we need to check whether it's free below
+
+    addi $t6 $s7 768                   # getting location of the block below
+
+    li $t0 0xffffff
+
+    lw $t5 0($t6)                      # getting color stored there
+    
+    beq $t5 $t3 check_half             # if the bottom has space, then check their orientation for half
+    j increment_next                   # else increment to the next block
+
+    check_half:
+      # li $t5 1
+      # beq $t4 $t5 drop_lone            # if it has no other half, drop itself
+
+      # li $t5 2
+      # beq $t4 $t5 drop_top            # its other half is on top, so we just drop
+
+      # li $t5 4
+      # beq $t4 $t5 drop_right            # its other half is to the right, then we need to check whether they have a free space below too
+
+
+      drop_lone:
+
+        lw $t1 0($s7)                 # getting color stored there again to move it down
+        add $a0 $a0 $s5               # getting the current x index
+
+        addi $a1 $a1 3                # move down by a capsule
+
+        li $a2 3                      # setting size of cube to draw
+        li $a3 3
+
+        push ($a0)
+        push ($a1)
+
+        jal draw_rect
+
+        pop ($a1)
+        pop ($a0)
+
+        li $t1 0x266533               # background color
+        addi $a1 $a1 -3               # move back to original block location to draw it to the background
+
+        push ($a0)
+        push ($a1)
+
+        jal draw_rect
+
+        pop ($a1)
+        pop ($a0)
+
+        # taking care of orientation drops too
+
+        addi $t2 $t8 768              # moving down orientation graph by 3 pixels
+        li $t3 1
+
+        sw $t3 0($t2)                 # load in the value of 1 at the new location where the capsule block is
+        sw $zero 0($t8)               # load in a zero at the original location
+
+        li $t9 1                      # change t9 to 1, meaning that we've a drop
+        
+        j increment_next
+
+
+      # drop_right: # reminder: we are at the left half of this capsule
+      #   # need to do another check to see if other half has space below
+      #   add $t4 $s7 780               # getting location of the space below the right half
+      #   lw $t2 0($t4)                 # getting the color at the location
+
+      #   bne $t2 $t3 increment_next    # if it's not available, then we increment next and we don't have to 
+      #   # worry about handling the left half again because it won't go through the first if branch
+
+      #   # else: drop both down
+      #   lw $t1 0($s7)                 # getting color of left half
+      #   addi $t2 $t7 12               # getting location of right half
+      #   lw $t3 0($t2)                 # getting color of right half
+
+      #   add $a0 $a0 $s5               # getting the x coordinate of the left capsule
+        
+      #   addi $a1 $a1 3                # move down by a block
+
+      #   li $a2 3                      # setting size of cube to draw
+      #   li $a3 3
+
+      #   push ($a0)
+      #   push ($a1)
+
+      #   jal draw_rect                 # draw the left half in the new place
+
+      #   pop ($a1)
+      #   pop ($a0)
+        
+      #   add $t1 $zero $t3             # changing t1 to the color of the right half
+      #   add $a0 $a0 3                 # getting the x coordinate of the right capsule
+      #   # y coord should be the same
+
+      #   push ($a0)
+      #   push ($a1)
+
+      #   jal draw_rect                 # draw the right half of the capsule
+
+      #   pop ($a1)
+      #   pop ($a0)
+
+      #   add $a0 $a0 -3                # moving back to the original coordinate to draw background color over
+      #   addi $a1 $a1 -3 
+
+      #   li $a2 6                      # changing width to 6
+      #   li $t1 0x266533               # background color
+
+      #   push ($a0)
+      #   push ($a1)
+
+      #   jal draw_rect                 # drawing over the background
+
+      #   pop ($a1)
+      #   pop ($a0)
+
+      #    # taking care of orientation drops
+
+      #   addi $t2 $t8 768              # moving down orientation offset by 3 pixels
+      #   li $t3 4                      # setting it as 4 because the half is on the right
+
+      #   sw $t3 0($t2)                 # save the value of 4 at the new location where the capsule block is
+      #   sw $zero 0($t8)               # save a zero at the original location
+
+      #   addi $t2 $t8 12               # moving to the right by 3 pixels to set the original location of the right half to 0 as well
+      #   sw $zero 0($t2)
+
+      #   addi $t2 $t8 780              # moving to the bottom of the right half
+      #   li $t3 16                     # loading in 16 because the other half is on the left
+      #   sw $t3 0($t2)                 # saving 16 at the new location of the right half
+
+      #   li $t9 1                      # change t9 to 1, meaning that we've a drop
+
+      #   j increment_next
+
+      # drop_top:
+        
+      #   lw $t4 0($s7)                 # getting color stored there again to move it down
+      #   addi $t3 $s7 -768             # getting location of friend
+      #   lw $t1 0($t3)                 # getting color of other half (setting it to t1 so that we can draw immediately)
+
+      #   add $a0 $a0 $s5               # getting the current x index
+
+      #   li $a2 3                      # setting size of cube to draw
+      #   li $a3 3
+
+      #   push ($a0)
+      #   push ($a1)
+
+      #   jal draw_rect                 # drawing the top half in the current pixel
+
+      #   pop ($a1)
+      #   pop ($a0)
+
+      #   add $t1 $zero $t4             # setting the color to draw as the bottom half color
+      #   add $a1 $a1 3                 # moving to the block area below
+
+      #   push ($a0)
+      #   push ($a1)
+
+      #   jal draw_rect                 # drawing the bottom half in the current pixel
+
+      #   pop ($a1)
+      #   pop ($a0)
+
+      #   add $a1 $a1 -6                # moving to the location of the top half
+      #   li $t1 0x266533               # load in background color
+
+      #   push ($a0)
+      #   push ($a1)
+        
+      #   jal draw_rect                 # drawing the top half location to background color
+
+      #   pop ($a1)
+      #   pop ($a0)
+
+      #   # taking care of orientation drops too
+
+      #   addi $t2 $t8 768              # moving down orientation offset by 3 pixels
+      #   li $t3 2
+
+      #   sw $t3 0($t2)                 # load in the value of 2 at the new location where the bottom capsule block is
+
+      #   addi $t2 $t8 768              # moving up the orientation offset by 3 pixels to set it to zero
+      #   sw $zero 0($t2)               # saving value of zero at the original spot of the top half 
+
+      #   li $t3 8
+      #   sw $t3 0($t8)                 # save 8 in the new location where the top capsule is
+
+      #   li $t9 1                      # change t9 to 1, meaning that we've a drop
+
+      #   j increment_next
+
+
+    increment_next:
+      
+    addi $s5 $s5 3                  # add 3 to the counter
+    addi $s7 $s7 12                 # add 12 to playfield offset
+    addi $t8 $t8 12                 # add 12 to orientation offset
+    
+    pop ($a2)
+    pop ($a1)
+    pop ($a0)
+
+    beq $s5 $a2 block_drop_end
+    j block_drop_start
+  
+  block_drop_end:
+    pop ($ra)
+    jr $ra
+
+
+
+
+
 
 
 
@@ -893,27 +1234,345 @@ copy_line:
 
 
 
-
-
 #######################################
-##  The Row/Column Removal Function  ##
+##     The Row Removal Function      ##
 #######################################
 # Input parameters:
-# - $a0: X coordinate of the top left corner of the capsule
-# - #a1: Y coordinate of the top left corner of the capsule
-remove_rows_columns:
+# - $a0: X coordinate of the top left corner of the rectangle
+# - $a1: Y coordinate of the top left corner of the rectangle
+# - $a2: colour value to check if 4+ connected
+remove_rows:
   push ($ra)
+  add $t5 $zero $zero       # setting the loop variable to 0
+  remove_r_start:
+    push ($ra)
+    push ($t5)
+    push ($a0)
+    push ($a1)
+    push ($a2)
+
+    jal check_row
+    
+    pop ($a2)
+    pop ($a1)
+    pop ($a0)
+    pop ($t5)
+    pop ($ra)
+
+    addi $t5 $t5 1                  # increment loop var by 1 after checking one row
+    addi $a1 $a1 3                  # increment y coordinate after each line (going to next capsule half location)
+    
+    beq $t5, 13, remove_r_end         # if t5 reached all rows (39 pixels total, 13 rows of capsule halves) (goes from 0 to 12, then add 1 so 13)
+    j remove_r_start
+
+  remove_r_end:
+  # t9 should be 1 if at least one row removed
+  beq $t9 1 removed_row
+  j no_removed_row
   
-
-
-
-
-
-  pop ($ra)
-  jr $ra
-
-
+    removed_row:
+    li $t0 1        # setting t0 to 1 to signal at least one row removed
+    jr $ra 
   
+    no_removed_row:
+    li $t0 0          # no removed row, set t0 to 0
+    jr $ra
+  
+  
+check_row:
+  push ($ra)
+  add $t5 $zero $zero               # setting the counter to 0
+  
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+  lw $t6, ADDR_DSPL                    # Load base address of source grid 
+
+  # Compute starting positions
+  add $t7, $t6, $v0                    # Source: base + X offset
+  add $t7, $t7, $v1                    # Source: base + Y offset
+  
+  # t7 now holds memory location of rectangle
+
+    # 20         # X coordinate of the top left corner of the rectangle
+    # 16         # Y coordinate of the top left corner of the rectangle
+    # 24         # Width of the rectangle to copy
+    # 39         # Height of the rectangle to copy
+    
+  add $t6 $zero $zero       # setting counter for 4+ connected check (increments every time it sees the colour)
+  
+  # RIGHT NOW: t7 is memory address of green box on display grid (top left corner); t6 is 4+ check; t5 is loop variable; 
+  # a0 is X coordinate of top left corner of rectangle (20); a1 is Y coordinate (16); a2 is colour hex code to check
+  
+  row_loop:
+    beq $t5 8 row_loop_end       # end loop if reached end of row
+  
+    # not at end; keep checking
+    lw $t1 0($t7)             # t1 stores colour at t7 position
+  
+    bne $t1 $a2 continue_loop_no_common       # branch if current pixel colour is NOT equal to colour we're checking
+    addi $t6 $t6 1                # increment bc we found a pixel w/ colour in common
+      beq $t6 1 save_address        # save location of first pixel in common in case we need to erase
+    j continue_loop_common
+    
+  # RIGHT NOW: t1, t5, t6, t7, a0, a1, a2 occupied
+  
+  save_address:
+    # RIGHT NOW: t7 stores current memory address on display grid of first pixel in common
+    # t5 stores what current loop iteration we're on (starting from 0-7) ; a1 stores what y coordinate we're on
+    # a0 stores X coordinate of top left corner of green rectangle
+    # to get X coordinate of block we want to save, add (3*t5) to a0
+    
+    add $t2 $zero $t5       # t2 = t5
+    addi $t3 $zero 3        # t3 = 3
+    multu $t2 $t3           # t2 * t3
+    mflo $t2                # t2 stores 3*(t5)
+    add $t2 $t2 $a0         # t2 = t2 + a0          # now t2 storing X coordinate of block we want to save
+    
+    j continue_loop_common
+  
+  continue_loop_no_common: 
+    # if t6 already >= 4, then go to remove_row_start           # OMFGGG THIS WAS THE BUGGGGGG
+    addi $t3 $t6 -3         # t3 = t6 - 3
+    bgtz $t3 remove_row_start
+    
+    # else
+    add $t6 $zero $zero         # reset t6 to 0 since found one not in common
+    addi $t5 $t5 1            # increment t5 for next check in row
+    addi $t7 $t7 12           # move to next capsule location (3 * 4 spots in memory)
+    j row_loop
+  
+  continue_loop_common:
+    addi $t5 $t5 1            # increment t5 for next check in row
+    addi $t7 $t7 12           # move to next capsule location (3 * 4 spots in memory)
+    j row_loop
+  
+  
+  row_loop_end:       # checked entire row
+    # t6 stores how many capsule halves in that row had the same colour
+    
+    addi $t3 $t6 -3         # t3 = t6 - 3
+    # if row not deletable, t3 <= 0; if row deletable, t3 > 0
+    bgtz $t3 remove_row_start         # branches to remove_row_start if deletable
+    # else, jump to end
+    j remove_row_end
+    
+    remove_row_start:
+    #t2 (x) and a1 (y) store position of first block in common
+    
+    # In rectangle drawing function (draw_rect):
+        # - $a0: X coordinate of the top left corner of the rectangle
+        # - #a1: Y coordinate of the top left corner of the rectangle
+        # - $a2: Width of the rectangle
+        # - $a3: Height of the rectangle
+        ###### also need t0 to store base address of grid and t1 to store colour            # include in input parameters later!!
+            # both t0 and t1 should be okay to modify here
+        
+        lw $t0 ADDR_DSPL        # removing in display grid
+        li $t1 0x266533         # dark green colour
+        
+    
+    add $a0 $zero $t2       # a0 = t2 (x coordinate of first pixel in common)
+    # a1 already has what we need (y coordinate of first pixel in common)
+    # a2 - width of rectangle is 3*t6
+    # a3 - height is just 3 (height of capsule half)
+    addi $t3 $zero 3
+    multu $t3 $t6           # 3 * t6
+    mflo $a2                # a2 = 3 * t6
+    addi $a3 $zero 3        # a3 = 3        # height of rectangle
+    
+    push ($a0)
+    push ($a1)
+    push ($a2)
+    push ($a3)
+    
+    jal draw_rect           # call draw_rect to erase row
+    
+    pop ($a0)
+    pop ($a1)
+    pop ($a2)
+    pop ($a3)
+    
+    li $t9 1                # setting t9 to 1 to signal at least one row removed
+    
+    remove_row_end:
+    pop ($ra)
+    jr $ra
+
+
+
+
+
+
+#######################################
+##    The Column Removal Function    ##
+#######################################
+# Input parameters:
+# - $a0: X coordinate of the top left corner of the rectangle
+# - $a1: Y coordinate of the top left corner of the rectangle
+# - $a2: colour value to check if 4+ connected
+remove_columns:
+  push ($ra)
+  add $t5 $zero $zero       # setting the loop variable to 0
+  remove_c_start:
+    push ($ra)
+    push ($t5)
+    push ($a0)
+    push ($a1)
+    push ($a2)
+
+    jal check_column
+    
+    pop ($a2)
+    pop ($a1)
+    pop ($a0)
+    pop ($t5)
+    pop ($ra)
+    
+    addi $t5 $t5 1                  # increment loop var by 1 after checking one column
+    addi $a0 $a0 3                  # increment x coordinate after column check (going to next capsule half location)
+    
+    beq $t5, 8, remove_c_end         # if t5 reached all columns (8 columns of capsule halves) (goes from 0 to 7, then add 1 so 8)
+    j remove_c_start
+    
+    remove_c_end:
+      # t9 should be 1 if at least one column removed
+      beq $t9 1 removed_col
+      j no_removed_col
+  
+    removed_col:
+    li $t0 1        # setting t0 to 1 to signal at least one column removed
+    jr $ra 
+  
+    no_removed_col:
+    li $t0 0          # no removed column, set t0 to 0
+    jr $ra
+    
+  
+  check_column:
+    push ($ra)
+    add $t5 $zero $zero               # setting the counter to 0
+  
+    addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+    addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+    multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+    mflo $v0                          
+    multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+    mflo $v1
+    lw $t6, ADD_GRID                    # Load base address of additional grid 
+
+    # Compute starting positions
+    add $t7, $t6, $v0                    # Source: base + X offset
+    add $t7, $t7, $v1                    # Source: base + Y offset
+  
+    # t7 now holds memory location of rectangle (in additional grid)
+    
+    add $t6 $zero $zero       # setting counter for 4+ connected check (increments every time it sees the colour)
+  
+    # RIGHT NOW: t7 is memory address of green box on display grid (top left corner); t6 is 4+ check; t5 is loop variable; 
+    # a0 is X coordinate of top left corner of rectangle (20); a1 is Y coordinate (16); a2 is colour hex code to check
+
+    column_loop:
+      beq $t5 13 col_loop_end       # end loop if reached end of column
+  
+      # not at end; keep checking
+      lw $t1 0($t7)             # t1 stores colour at t7 position
+  
+      bne $t1 $a2 continue_loop_no_common_col       # branch if current pixel colour is NOT equal to colour we're checking
+      addi $t6 $t6 1                # increment bc we found a pixel w/ colour in common
+        beq $t6 1 save_address_col        # save location of first pixel in common in case we need to erase
+      j continue_loop_common_col
+    
+      # RIGHT NOW: t1, t5, t6, t7, a0, a1, a2 occupied
+        
+      
+      save_address_col:
+        # RIGHT NOW: t7 stores current memory address on additional grid of first pixel in common
+        # t5 stores what current loop iteration we're on (starting from 0-12) ; a0 stores what x coordinate we're on
+        # a1 stores Y coordinate of top left corner of green rectangle
+        # to get Y coordinate of block we want to save, (3*t5) + a1
+    
+        add $t2 $zero $t5       # t2 = t5
+        addi $t3 $zero 3        # t3 = 3
+        multu $t2 $t3           # t2 * t3
+        mflo $t2                # t2 stores 3*(t5)
+        add $t2 $t2 $a1         # t2 = t2 + a1          # now t2 storing Y coordinate of block we want to save
+    
+        j continue_loop_common_col
+       
+      continue_loop_no_common_col: 
+        # if t6 already >= 4, then go to remove_col_start
+        addi $t3 $t6 -3         # t3 = t6 - 3
+        bgtz $t3 remove_col_start
+    
+        # else
+        add $t6 $zero $zero         # reset t6 to 0 since found one not in common
+        addi $t5 $t5 1            # increment t5 for next check in column
+        addi $t7 $t7 768           # move to next capsule location down (3 * 256 spots in memory)
+        j column_loop
+    
+      continue_loop_common_col:
+        addi $t5 $t5 1            # increment t5 for next check in column
+        addi $t7 $t7 768           # move to next capsule location down (3 * 256 spots in memory)
+        j column_loop
+  
+  
+      col_loop_end:       # checked entire column
+        # t6 stores how many capsule halves in that column had the same colour
+    
+        addi $t3 $t6 -3         # t3 = t6 - 3
+        # if column not deletable, t3 <= 0; if column deletable, t3 > 0
+        bgtz $t3 remove_col_start         # branches to remove_col_start if deletable
+        # else, jump to end
+        j remove_col_end
+  
+  
+      remove_col_start:
+        #t2 (x) and a1 (y) store position of first block in common
+    
+    # In rectangle drawing function (draw_rect):
+        # - $a0: X coordinate of the top left corner of the rectangle
+        # - #a1: Y coordinate of the top left corner of the rectangle
+        # - $a2: Width of the rectangle
+        # - $a3: Height of the rectangle
+        ###### also need t0 to store base address of grid and t1 to store colour            # include in input parameters later!!
+            # both t0 and t1 should be okay to modify here
+        
+        lw $t0 ADDR_DSPL        # removing in display grid
+        li $t1 0x266533         # dark green colour
+        
+    # a0 already has what we need (x coordinate of first pixel in common)
+    add $a1 $zero $t2       # a1 = t2 (y coordinate of first pixel in common)
+    # a2 - width of rectangle is 3
+    # a3 - height of rectangle is 3*t6
+    addi $a2 $zero 3        # a2 = 3
+    addi $t3 $zero 3
+    multu $t3 $t6           # 3 * t6
+    mflo $a3                # a3 = 3 * t6
+    
+    push ($a0)
+    push ($a1)
+    push ($a2)
+    push ($a3)
+    
+    jal draw_rect           # call draw_rect to erase column
+    
+    pop ($a0)
+    pop ($a1)
+    pop ($a2)
+    pop ($a3)
+    
+    li $t9 1                # setting t9 to 1 to signal at least one column removed
+    
+    remove_col_end:
+    pop ($ra)
+    jr $ra
+
+
+
 
 
 ####################################
