@@ -113,58 +113,8 @@ game_loop:
 
     handle_collision:
 
-      li $a0 20
-      li $a1 16
-      li $a2 24
-      li $a3 39
-
-      jal copy_grid
-
-      # kate
-      li $a0 20         # X coord of top left corner of dark green rectangle
-      li $a1 16         # Y coord of top left corner of dark green rectangle
-      li $a2 0xDBF68F       # check for sour apple
-      jal remove_rows
-      
-      li $a0 20
-      li $a1 16
-      li $a2 0xDBF68F
-      jal remove_columns
-      
-      li $a0 20
-      li $a1 16
-      li $a2 0xF16838       # check for orange
-      jal remove_rows
-      
-      li $a0 20
-      li $a1 16
-      li $a2 0xF16838
-      jal remove_columns
-      
-      li $a0 20
-      li $a1 16
-      li $a2 0xFFCE55       # check for yellow
-      jal remove_rows
-      
-      li $a0 20
-      li $a1 16
-      li $a2 0xFFCE55
-      jal remove_columns
-
-      beq $t0 $zero collision_end
-      
-      li $a0 20
-      li $a1 16
-      li $a2 24
-      li $a3 39
-
-      jal handle_drop
-
-      j handle_collision
-
-      
-      collision_end:
-
+      jal remove_and_drop
+    
       jal draw_start_capsule  # start the next capsule after everything is done
       
 
@@ -856,6 +806,89 @@ erase_capsule:
   
 
 
+
+
+
+
+
+
+################################
+##  Remove and Drop Function  ##
+################################
+remove_and_drop:
+  push ($ra)
+
+  removal_loop:
+  li $a0 20
+  li $a1 16
+  li $a2 24
+  li $a3 39
+
+  jal copy_grid
+
+  # kate
+  li $a0 20         # X coord of top left corner of dark green rectangle
+  li $a1 16         # Y coord of top left corner of dark green rectangle
+  li $a2 0xDBF68F       # check for sour apple
+  jal remove_rows
+  
+  li $a0 20
+  li $a1 16
+  li $a2 0xDBF68F
+  jal remove_columns
+  
+  li $a0 20
+  li $a1 16
+  li $a2 0xF16838       # check for orange
+  jal remove_rows
+  
+  li $a0 20
+  li $a1 16
+  li $a2 0xF16838
+  jal remove_columns
+  
+  li $a0 20
+  li $a1 16
+  li $a2 0xFFCE55       # check for yellow
+  jal remove_rows
+  
+  li $a0 20
+  li $a1 16
+  li $a2 0xFFCE55
+  jal remove_columns
+
+  beq $t0 $zero remove_and_drop_end
+  
+  li $a0 20
+  li $a1 16
+  li $a2 24
+  li $a3 39
+
+  drop_loop:
+  
+  jal handle_drop
+
+  beq $t9 $zero removal_loop                    # since handle_loop returns 1 in t9 if there was a drop and 0 if there wasn't, we go back to remove if there was no drop
+
+  push ($a0)
+  li $v0, 32
+  li $a0, 400
+  syscall
+  
+  pop ($a0)
+
+  j drop_loop                                   # we need to keep looping handle_drop if t9 == 1
+  
+
+  remove_and_drop_end:
+    pop ($ra)
+    jr $ra
+
+
+
+
+
+
 ############################
 ##  Handle Drop Function  ##
 ############################
@@ -863,6 +896,7 @@ erase_capsule:
 handle_drop:
   add $t6, $a1, $zero         # Store initial y-coordinate (16)
   addi $a1, $zero, 49         # Set start y-coordinate
+  li $t9 0
   
   drop_row_start:
     push ($ra)
@@ -891,7 +925,6 @@ handle_drop:
 # given the starting coordinate of a row (a0, a1), and length (a2), drop everything in the row 
 # down by one capsule area if the area below them is background color (and their half allows them to)
 drop_row:
-  li $t9 0
   
   push ($ra)
 
