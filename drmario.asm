@@ -52,6 +52,9 @@ ADD_GRID:
 ORI_GRID:
     .space 16384
 
+DROP_SPD:
+    .space 4
+
 
 ##############################################################################
 # Mutable Data
@@ -86,6 +89,11 @@ COLOR2:
 
     # Run the game.
 main:
+    # setting inital block speed
+    la $t0, DROP_SPD       # $t0 = location of original fall speed
+    li $t1 5000000         
+    sw $t1 0($t0)          # load in the starting speed
+    
     lw $t0, ADDR_DSPL       # $t0 = base address for display
     li $t1, 0x568366        # $t1 = green
     addi $a0 $zero 1        # setting the x pos of rect
@@ -96,46 +104,49 @@ main:
     jal draw_rect           # call the rectangle drawing function
     
     jal draw_bottle
-    
-    jal draw_start_capsule
 
+    # 1: drawing the capsule at the bottle neck
+    jal draw_start_capsule
 
 # a0: x pos
 # a1: y pos
 # a2: orientation, 0 for h, 1 for v
 game_loop:
-    # 1: drawing the capsule at the bottle neck
-
-    jal ycollision  # sets t0 to 0 if there is a vertical collision
-
-    beq $t0 $zero handle_collision
+    jal ycollision              # Check if capsule has hit the ground
+    beq $t0, $zero, handle_collision  # If collision, handle it
     j draw_new_capsule_end
 
-    handle_collision:
+handle_collision:
+    push ($a0)
+    li $v0, 32
+    li $a0, 50
+    syscall                     # Sleep (short pause for visibility)
+    pop ($a0)
 
-      jal remove_and_drop
-    
-      jal draw_start_capsule  # start the next capsule after everything is done
-      
-
-    draw_new_capsule_end:
-
-    # check keyboard action for this loop
-    lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
-    lw $t8, 0($t0)                  # Load first word from keyboard
-    beq $t8, 1, keyboard_input      # If first word 1, key is pressed
-
-    # 1a. Check if key has been pressed
-    # 1b. Check which key has been pressed
-    # 2a. Check for collisions
-	# 2b. Update locations (capsules)
-	# 3. Draw the screen
-	# 4. Sleep
-
-    # 5. Go back to Step 1
-
-    lw $t0, ADDR_DSPL       # $t0 = base address for display
+    jal remove_and_drop
+    jal draw_start_capsule      # Start the next capsule
     j game_loop
+
+draw_new_capsule_end:
+    la $t9, DROP_SPD       # $t0 = location of original fall speed
+    lw $t1, 0($t9)                 # Set timer for move_down from memory
+
+keyboard_check_loop:
+    lw $t0, ADDR_KBRD           # Load keyboard base address
+    lw $t8, 0($t0)              # Read keyboard state
+    beq $t8, 1, keyboard_input  # If key is pressed, handle it
+
+    addi $t1, $t1, -1           # Decrease timer count
+    bgtz $t1, keyboard_check_loop # If timer hasn't reached 0, keep checking input
+    
+    beq $t8, 1, keyboard_input  # If key is pressed, handle it
+    
+    # Timer has reached 0, move capsule down
+    jal move_down  
+    
+keyboard_end:
+
+    j game_loop                 # Restart main loop
 
 
 # a0: x pos
@@ -178,30 +189,22 @@ keyboard_input:
   
   call_quit:
       jal quit        
-      j keyboard_end
-  
-  keyboard_end:
-      lw $ra, 0($sp)          # Restore $ra
-      addi $sp, $sp, 4        # Pop stack
-      jr $ra     
+
+
 
 
 move_left:
   addi $sp $sp -4            # push return value onto stack
   sw $ra 0($sp)
   
-  
   la $t3 CAPSULE_X           # get the memory location of CAPSULE_X
   lw $a0 0($t3)              # get the x coordinate of the curr capsule
 
-  
   la $t3 CAPSULE_Y           # get the memory location of CAPSULE_Y
   lw $a1 0($t3)              # get the y coordinate of the curr capsule
-
-
+  
   la $t3 CAPSULE_O           # get the memory location of ORIENTATION
   lw $t0 0($t3)              # get the y coordinate of the curr capsule
-
 
   jal left_collision
   
@@ -210,7 +213,6 @@ move_left:
   # not at bottle wall
 
   jal erase_capsule
-
 
   # draw the updated capsule
   
@@ -232,6 +234,7 @@ move_left:
   addi $sp $sp 4
 
   jr $ra
+
   
 
 move_right:
@@ -858,11 +861,24 @@ remove_and_drop:
   jal remove_columns
 
   beq $t0 $zero remove_and_drop_end
-  
+
+  la $t6 DROP_SPD
+  lw $t5 0($t6)
+  addi $t5 $t5 60000          # increase drop speed every time a row/column removed
+
+  sw $t5 0($t6)               # write it back in
+
   li $a0 20
   li $a1 16
   li $a2 24
   li $a3 39
+
+  push ($a0)
+  li $v0, 32
+  li $a0, 400
+  syscall
+  
+  pop ($a0)
 
   drop_loop:
   
@@ -872,7 +888,7 @@ remove_and_drop:
 
   push ($a0)
   li $v0, 32
-  li $a0, 400
+  li $a0, 300
   syscall
   
   pop ($a0)
@@ -1311,6 +1327,7 @@ remove_rows:
     li $t0 0          # no removed row, set t0 to 0
     jr $ra
   
+
   
 check_row:
   push ($ra)
@@ -1606,6 +1623,28 @@ remove_columns:
 
 
 
+#######################################
+##  Row Orientation Update Function  ##
+#######################################
+# Input parameters:
+# - $a0: X coordinate of row to change
+# - #a1: Y coordinate of row the change
+
+
+
+
+
+
+##########################################
+##  Column Orientation Update Function  ##
+##########################################
+# Input parameters:
+# - $a0: X coordinate of column to change
+# - #a1: Y coordinate of column the change
+
+
+
+
 
 
 ####################################
@@ -1615,6 +1654,8 @@ remove_columns:
 # - $a0: X coordinate of the top left corner of the capsule
 # - #a1: Y coordinate of the top left corner of the capsule
 draw_start_capsule:
+
+  
   
   # adding $ra to stack
   addi $sp, $sp, -4                # Move the stack pointer to an empty location
