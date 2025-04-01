@@ -31,8 +31,6 @@
     addi $sp, $sp, 4        # move the stack pointer to the top element of the stack.
 .end_macro
 
-
-
     .data
 ##############################################################################
 # Immutable Data
@@ -46,7 +44,7 @@ ADDR_KBRD:
 
 # The address of the additional grid for removal function
 ADD_GRID:
-    .word 0x10010008
+    .space 16384
 
 # The address of the orientation grid for keeping track of capsule halves
 ORI_GRID:
@@ -91,7 +89,7 @@ COLOR2:
 main:
     # setting inital block speed
     la $t0, DROP_SPD       # $t0 = location of original fall speed
-    li $t1 5000000         
+    li $t1 3000000         
     sw $t1 0($t0)          # load in the starting speed
     
     lw $t0, ADDR_DSPL       # $t0 = base address for display
@@ -123,9 +121,13 @@ handle_collision:
     syscall                     # Sleep (short pause for visibility)
     pop ($a0)
 
+    jal save_orientation
+
     jal remove_and_drop
     jal draw_start_capsule      # Start the next capsule
     j game_loop
+
+
 
 draw_new_capsule_end:
     la $t9, DROP_SPD       # $t0 = location of original fall speed
@@ -137,17 +139,14 @@ keyboard_check_loop:
     beq $t8, 1, keyboard_input  # If key is pressed, handle it
 
     addi $t1, $t1, -1           # Decrease timer count
-    bgtz $t1, keyboard_check_loop # If timer hasn't reached 0, keep checking input
     
-    beq $t8, 1, keyboard_input  # If key is pressed, handle it
+    bgtz $t1, keyboard_check_loop # If timer hasn't reached 0, keep checking input
     
     # Timer has reached 0, move capsule down
     jal move_down  
-    
-keyboard_end:
 
+    timer_check:
     j game_loop                 # Restart main loop
-
 
 # a0: x pos
 # a1: y pos
@@ -162,34 +161,101 @@ keyboard_input:
     beq $t1, 'a', call_move_left  
 
     beq $t1, 'd', call_move_right 
-    
+  
     beq $t1, 's', call_move_down  
     
     beq $t1, 'w', call_rotate     
+
+    beq $t1, 'p', call_pause      
     
     beq $t1, 'q', call_quit       
 
-    j keyboard_end          # If no valid input, skip function calls
+    j timer_check          # If no valid input, skip function calls
 
   call_move_left:
       jal move_left   
-      j keyboard_end
+
+      j timer_check
   
   call_move_right:
       jal move_right  
-      j keyboard_end
+
+      j timer_check
   
   call_move_down:
       jal move_down   
-      j keyboard_end
+
+      j timer_check
   
   call_rotate:
       jal rotate      
-      j keyboard_end
+
+      j timer_check
+
+
+  call_pause:
+      jal pause
+
+      j timer_check
   
   call_quit:
       jal quit        
 
+
+#################################
+##  Save Orientation Function  ##
+#################################
+# - takes the current values in CAPSULE_X, CAPSULE_Y, CAPSULE_O to store orientation information about the current capsule
+save_orientation:
+  push ($ra)
+  la $s2 ORI_GRID                     # getting the starting address of the orientation grid
+
+  # setting orientation graph offset
+  addi $t5 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t6 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  lw $s0 CAPSULE_X
+  lw $s1 CAPSULE_Y
+
+  multu $t5 $s0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t6 $s1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  add $t7 $s2 $v0                 # setting the horizontal offset
+  add $t7 $t7 $v1                 # setting the vertical offset
+
+  # t7 now holds the correct corresponding address of the capsule (left half) in the orientation grid
+
+  lw $s3 CAPSULE_O                 # getting orientation information about the capsule
+
+  beq $zero $s3 save_horizontal_orientation    # if horizontal, branch to horizontal
+
+
+  # elif switch to vertical branch 
+  
+  li $s7 2
+  sw $s7 0($t7)                              # saving bottom half information in the ORI_GRID
+
+  li $s7 8
+  add $t7 $t7 -768                             # moving to upper block location in ORI_GRID
+  sw $s7 0($t7)                              # saving top half information in the ORI_GRID
+
+  j saved_orientation
+  
+
+  save_horizontal_orientation:
+    li $s7 4
+    sw $s7 0($t7)                              # saving left half information in the ORI grid
+
+    li $s7 16
+    add $t7 $t7 12                             # moving to next capsule location
+    sw $s7 0($t7)                              # saving right half information in the ORI grid
+
+  saved_orientation:
+  pop ($ra)
+  jr $ra
 
 
 
@@ -355,7 +421,63 @@ rotate:
 
   jr $ra
   
+
+
+
+pause:
+  push ($ra)
   
+  li $a0 0
+  li $a1 0
+  li $a2 64
+  li $a3 64
+
+  jal copy_grid              # copy grid over to additional board
+
+  li $t1 0xffffff
+
+  li $a0 24
+  li $a1 25
+  li $a2 7
+  li $a3 15
+
+  jal draw_rect
+
+  li $a0 33
+  li $a1 25
+  li $a2 7
+  li $a3 15
+
+  jal draw_rect
+
+  li $a0 24
+  li $a1 40
+
+  jal draw_paused
+  
+  pause_loop:
+  lw $t0, ADDR_KBRD           # Load keyboard base address
+  lw $t8, 0($t0)              # Read keyboard state
+  beq $t8, 1, pause_check  # If key is pressed, handle it
+
+  j pause_loop
+
+  pause_check:
+    lw $t1, 4($t0)          # Load second word from keyboard
+
+    beq $t1, 'p' pause_end
+    
+  pause_end:
+
+    li $a0 0
+    li $a1 0
+    li $a2 64
+    li $a3 64
+
+    jal copy_back
+    
+    pop ($ra)
+    jr $ra
 
 
 quit:
@@ -367,6 +489,29 @@ quit:
 
 
 # keyboard helpers
+
+# - a0: where to begin writing
+# - a1: y coordinate of where to write
+draw_paused:
+  push ($ra)
+
+  li $a2 7
+  li $a3 3
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  pop ($ra)
+  jr $ra
+  
+
+
 
 
 left_collision:
@@ -814,7 +959,6 @@ erase_capsule:
 
 
 
-
 ################################
 ##  Remove and Drop Function  ##
 ################################
@@ -822,6 +966,15 @@ remove_and_drop:
   push ($ra)
 
   removal_loop:
+
+  li $a0 0
+  li $a1 0
+  li $a2 64
+  li $a3 64
+
+  li $t0 0
+  jal add_draw_rect         # drawing additional grid to black
+
   li $a0 20
   li $a1 16
   li $a2 24
@@ -989,16 +1142,15 @@ drop_row:
 
     addi $t6 $s7 768                   # getting location of the block below
 
-    li $t0 0xffffff
-
     lw $t5 0($t6)                      # getting color stored there
     
     beq $t5 $t3 check_half             # if the bottom has space, then check their orientation for half
+    
     j increment_next                   # else increment to the next block
 
     check_half:
-      # li $t5 1
-      # beq $t4 $t5 drop_lone            # if it has no other half, drop itself
+      li $t5 1
+      beq $t4 $t5 drop_lone            # if it has no other half, drop itself
 
       # li $t5 2
       # beq $t4 $t5 drop_top            # its other half is on top, so we just drop
@@ -1050,6 +1202,11 @@ drop_row:
 
 
       # drop_right: # reminder: we are at the left half of this capsule
+      #   addi $s1 $t8 12
+      #   lw $t2 0($s1)
+      #   beq $t2 0 drop_lone
+
+
       #   # need to do another check to see if other half has space below
       #   add $t4 $s7 780               # getting location of the space below the right half
       #   lw $t2 0($t4)                 # getting the color at the location
@@ -1071,9 +1228,11 @@ drop_row:
 
       #   push ($a0)
       #   push ($a1)
+      #   push ($t3)
 
       #   jal draw_rect                 # draw the left half in the new place
 
+      #   pop ($t3)
       #   pop ($a1)
       #   pop ($a0)
         
@@ -1123,7 +1282,10 @@ drop_row:
       #   j increment_next
 
       # drop_top:
-        
+      #   addi $s1 $t8 -768
+      #   lw $t2 0($s1)
+      #   beq $t2 0 drop_lone
+
       #   lw $t4 0($s7)                 # getting color stored there again to move it down
       #   addi $t3 $s7 -768             # getting location of friend
       #   lw $t1 0($t3)                 # getting color of other half (setting it to t1 so that we can draw immediately)
@@ -1135,9 +1297,11 @@ drop_row:
 
       #   push ($a0)
       #   push ($a1)
+      #   push ($t4)
 
       #   jal draw_rect                 # drawing the top half in the current pixel
 
+      #   pop ($t4)
       #   pop ($a1)
       #   pop ($a0)
 
@@ -1255,7 +1419,7 @@ copy_line:
 
   lw $t6, ADDR_DSPL                    # Load base address of source grid 
 
-  lw $t9, ADD_GRID
+  la $t9, ADD_GRID
 
   # Compute starting positions
   add $t7, $t6, $v0                    # Source: base + X offset
@@ -1278,6 +1442,88 @@ copy_line:
   pixel_copy_end:                   # the label for the end of the pixel drawing loop
   
   jr $ra 
+
+
+
+
+
+###############################
+##  Copy Back Grid Function  ##
+###############################
+# Input parameters:
+# - $a0: X coordinate of the top left corner of the rectangle
+# - #a1: Y coordinate of the top left corner of the rectangle
+# - $a2: Width of the rectangle to copy
+# - $a3: Height of the rectangle to copy
+copy_back:
+  add $t5 $zero $zero       # setting the loop variable to 0
+  copyb_line_start:
+    push ($ra)
+    push ($t5)
+    push ($a0)
+    push ($a1)
+
+    jal copyb_line
+
+    pop ($a1)
+    pop ($a0)
+    pop ($t5)
+    pop ($ra)
+
+    addi $t5 $t5 1                  # increment loop var by 1 after drawing one line
+    addi $a1 $a1 1                  # increment y coordinate after each line
+    
+    beq $t5, $a3, copyb_line_end
+    j copyb_line_start
+
+  copyb_line_end:
+  
+  jr $ra 
+    
+
+
+# Copy grid helper
+copyb_line:
+  add $t5 $zero $zero               # setting the counter to 0
+
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  la $t6, ADD_GRID                    # Load base address of source grid 
+
+  lw $t9, ADDR_DSPL
+  
+  # Compute starting positions
+  add $t7, $t6, $v0                    # Source: base + X offset
+  add $t7, $t7, $v1                    # Source: base + Y offset
+
+  add $t8, $t9, $v0                    # Destination: base + X offset
+  add $t8, $t8, $v1                    # Destination: base + Y offset
+
+
+  pixelb_copy_start:         
+    lw $t1 0( $t7 )
+    sw $t1 0( $t8 )                # paint the current current location to 
+    
+    addi $t5 $t5 1                  # add 1 to the counter
+    addi $t7, $t7, 4                # move to the next pixel in the row for playing field
+    addi $t8, $t8, 4                # move to the next pixel in the row for additional grid
+    
+    beq $t5, $a2, pixelb_copy_end     # break out of the loop if you hit the final pixel
+    j pixelb_copy_start              # otherwise, jump to the top of the loop
+  pixelb_copy_end:                   # the label for the end of the pixel drawing loop
+  
+  jr $ra 
+
+
+
+
 
 
 
@@ -1426,6 +1672,10 @@ check_row:
         
     
     add $a0 $zero $t2       # a0 = t2 (x coordinate of first pixel in common)
+
+    add $s0 $a0 $zero
+    add $s1 $a1 $zero       # chelsey: added additional register for offset error
+    
     # a1 already has what we need (y coordinate of first pixel in common)
     # a2 - width of rectangle is 3*t6
     # a3 - height is just 3 (height of capsule half)
@@ -1438,14 +1688,33 @@ check_row:
     push ($a1)
     push ($a2)
     push ($a3)
+    push ($t6)
     
     jal draw_rect           # call draw_rect to erase row
-    
+
+    pop ($t6)
     pop ($a0)
     pop ($a1)
     pop ($a2)
     pop ($a3)
+
+    # updating orientation grid
+    push ($a0)
+    push ($a1)
+    push ($a2)
+    push ($a3)
+
+    add $a0 $zero $s0                           # accounting for pushpop errors: chelsey
+    add $a1 $zero $s1
+    add $a2 $zero $t6                           # this is how many capsule blocks we've seen
     
+    jal update_horizontal_orientation           # call update_orientation to correctly update all
+    
+    pop ($a3)
+    pop ($a2)
+    pop ($a1)
+    pop ($a0)
+
     li $t9 1                # setting t9 to 1 to signal at least one row removed
     
     remove_row_end:
@@ -1454,6 +1723,116 @@ check_row:
 
 
 
+# a0 = t2 x coordinate of first pixel in common
+# a1 = y coordinate of first pixel in common
+# a2 - how many blocks to loop through 
+update_horizontal_orientation:
+  push ($ra)
+
+  li $t5 0                              # initializing counter
+
+  addi $t3 $zero 4                      # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                    # store constant 256 in t4 so we can do multiplication with the y coordinate
+  multu $t3 $a0                         # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  multu $t4 $a1                         # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  la $s6, ORI_GRID                      # Load base address of orientation grid 
+  
+  # Compute starting positions
+  add $t8, $s6, $v0                     # Source: base + X offset
+  add $t8, $t8, $v1                     # Source: base + Y offset
+
+
+  start_horizontal_orientation:
+    
+    lw $s6 0($t8)                       # getting the orienation value of the block
+    li $s1 1                            # load in 1 so we can use it for the branches
+
+    li $s5 -1                           
+    beq $s5 $s6 end_horizontal_orientation_branches # we are at a virus, so we can just set it to 0
+
+    li $s5 1
+    beq $s5 $s6 end_horizontal_orientation_branches # we are at a single block, so we can just set it to 0
+
+    li $s5 2
+    beq $s5 $s6 horizontal_v_branch                 # block has top half
+
+    li $s5 4
+    beq $s5 $s6 horizontal_r_branch                 # block has right half
+    
+    li $s5 8
+    beq $s5 $s6 horizontal_d_branch                 # block has bottom half, go down
+
+    li $s5 16
+    beq $s5 $s6 horizontal_d_branch                 # block has left half
+
+    j end_horizontal_orientation_branches
+
+
+    horizontal_v_branch:
+      add $s3 $t8 -768                              # getting location of top half
+
+      lw $s2 0($s3)                                 # getting value stored there to see if it's already 0
+      beq $zero $s2 end_horizontal_orientation_branches  # if already 0, jump straight to end
+      
+      sw $s1 0($s3)                                 # setting it to half-less :(
+      
+    j end_horizontal_orientation_branches
+
+
+    horizontal_r_branch:
+      add $s3 $t8 12                                # getting location of right half
+
+      lw $s2 0($s3)                                 # getting value stored there to see if it's already 0
+      beq $zero $s2 end_horizontal_orientation_branches  # if already 0, jump straight to end
+      
+      sw $s1 0($s3)                                 # setting it to half-less :(
+      
+    j end_horizontal_orientation_branches
+
+
+    horizontal_d_branch:
+      add $s3 $t8 768                               # getting location of bottom half
+      
+      lw $s2 0($s3)                                 # getting value stored there to see if it's already 0
+      beq $zero $s2 end_horizontal_orientation_branches  # if already 0, jump straight to end
+      
+      sw $s1 0($s3)                                 # setting it to half-less :(
+      
+    j end_horizontal_orientation_branches
+
+
+    horizontal_l_branch:
+      add $s3 $t8 -12                               # getting location of left half
+
+      lw $s2 0($s3)                                 # getting value stored there to see if it's already 0
+      beq $zero $s2 end_horizontal_orientation_branches  # if already 0, jump straight to end
+      
+      sw $s1 0($s3)                                 # setting it to half-less :(
+      
+    j end_horizontal_orientation_branches
+
+
+    end_horizontal_orientation_branches:
+
+    sw $zero 0($t8)                     # change the orientation value
+      
+    addi $t8 $t8 12                     # increasing address offset by 12
+    addi $t5 $t5 1                      # increasing counter by 1
+    
+    beq $t5 $a2 end_horizontal_orientation
+
+    j start_horizontal_orientation
+    
+  end_horizontal_orientation:
+    
+    pop ($ra)
+
+    jr $ra
+
+  
 
 
 
@@ -1512,7 +1891,7 @@ remove_columns:
     mflo $v0                          
     multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
     mflo $v1
-    lw $t6, ADD_GRID                    # Load base address of additional grid 
+    la $t6, ADD_GRID                    # Load base address of additional grid 
 
     # Compute starting positions
     add $t7, $t6, $v0                    # Source: base + X offset
@@ -1596,6 +1975,10 @@ remove_columns:
         
     # a0 already has what we need (x coordinate of first pixel in common)
     add $a1 $zero $t2       # a1 = t2 (y coordinate of first pixel in common)
+
+    add $s0 $a0 $zero
+    add $s1 $a1 $zero       # chelsey: added additional register for offset error
+    
     # a2 - width of rectangle is 3
     # a3 - height of rectangle is 3*t6
     addi $a2 $zero 3        # a2 = 3
@@ -1607,13 +1990,32 @@ remove_columns:
     push ($a1)
     push ($a2)
     push ($a3)
+    push ($t6)
     
     jal draw_rect           # call draw_rect to erase column
-    
+
+    pop ($t6)
     pop ($a0)
     pop ($a1)
     pop ($a2)
     pop ($a3)
+    
+    # updating orientation grid
+    push ($a0)
+    push ($a1)
+    push ($a2)
+    push ($a3)
+
+    add $a0 $zero $s0                           # accounting for pushpop errors: chelsey
+    add $a1 $zero $s1 
+    add $a3 $zero $t6                           # this is how many capsule blocks we've seen
+    
+    jal update_vertical_orientation           # call update_orientation to correctly update all
+    
+    pop ($a3)
+    pop ($a2)
+    pop ($a1)
+    pop ($a0)
     
     li $t9 1                # setting t9 to 1 to signal at least one column removed
     
@@ -1623,25 +2025,122 @@ remove_columns:
 
 
 
-#######################################
-##  Row Orientation Update Function  ##
-#######################################
-# Input parameters:
-# - $a0: X coordinate of row to change
-# - #a1: Y coordinate of row the change
-
-
-
-
 
 
 ##########################################
 ##  Column Orientation Update Function  ##
 ##########################################
-# Input parameters:
-# - $a0: X coordinate of column to change
-# - #a1: Y coordinate of column the change
+# a0 = t2 x coordinate of first pixel in common
+# a1 = y coordinate of first pixel in common
+# a3 - how many blocks to loop through 
+update_vertical_orientation:
+  push ($ra)
 
+  li $t5 0                              # initializing counter
+
+  addi $t3 $zero 4                      # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                    # store constant 256 in t4 so we can do multiplication with the y coordinate
+  multu $t3 $a0                         # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  multu $t4 $a1                         # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  la $s6, ORI_GRID                      # Load base address of orientation grid 
+  
+  # Compute starting positions
+  add $t8, $s6, $v0                     # Source: base + X offset
+  add $t8, $t8, $v1                     # Source: base + Y offset
+
+  # t8 now contains the correct offset location of the row to remove
+
+
+  start_vertical_orientation:
+    
+    lw $s6 0($t8)                       # getting the orienation value of the block
+    li $s1 1                            # load in 1 so we can use it for the branches
+
+    li $s5 -1                           
+    beq $s5 $s6 end_vertical_orientation_branches # we are at a virus, so we can just set it to 0
+
+    li $s5 1
+    beq $s5 $s6 end_vertical_orientation_branches # we are at a single block, so we can just set it to 0
+
+    li $s5 2
+    beq $s5 $s6 vertical_v_branch                 # block has top half
+
+    li $s5 4
+    beq $s5 $s6 vertical_r_branch                 # block has right half
+    
+    li $s5 8
+    beq $s5 $s6 vertical_d_branch                 # block has bottom half, go down
+
+    li $s5 16
+    beq $s5 $s6 vertical_d_branch                 # block has left half
+
+    j end_vertical_orientation_branches
+
+
+    vertical_v_branch:
+      add $s3 $t8 -768                              # getting location of top half
+
+      lw $s2 0($s3)                                 # getting value stored there to see if it's already 0
+      beq $zero $s2 end_vertical_orientation_branches  # if already 0, jump straight to end
+    
+      sw $s1 0($s3)                                 # setting it to half-less :(
+      
+    j end_vertical_orientation_branches
+
+
+    vertical_r_branch:
+      add $s3 $t8 12                                # getting location of right half
+
+      lw $s2 0($s3)                                 # getting value stored there to see if it's already 0
+      beq $zero $s2 end_vertical_orientation_branches  # if already 0, jump straight to end
+      
+      sw $s1 0($s3)                                 # setting it to half-less :(
+      
+    j end_vertical_orientation_branches
+
+
+    vertical_d_branch:
+      add $s3 $t8 768                               # getting location of bottom half
+
+      lw $s2 0($s3)                                 # getting value stored there to see if it's already 0
+      beq $zero $s2 end_vertical_orientation_branches  # if already 0, jump straight to end
+    
+      sw $s1 0($s3)                                 # setting it to half-less :(
+      
+    j end_vertical_orientation_branches
+
+
+    vertical_l_branch:
+      add $s3 $t8 -12                               # getting location of left half
+
+      lw $s2 0($s3)                                 # getting value stored there to see if it's already 0
+      beq $zero $s2 end_vertical_orientation_branches  # if already 0, jump straight to end
+    
+      sw $s1 0($s3)                                 # setting it to half-less :(
+      
+    j end_vertical_orientation_branches
+
+
+    end_vertical_orientation_branches:
+
+    sw $zero 0($t8)                     # change the orientation value
+      
+    addi $t8 $t8 768                    # increasing address offset by 
+    addi $t5 $t5 1                      # increasing counter by 1
+    
+    beq $t5 $a3 end_vertical_orientation
+
+    j start_vertical_orientation
+    
+  end_vertical_orientation:
+    pop ($ra)
+
+    jr $ra
+
+  
 
 
 
@@ -2262,6 +2761,100 @@ draw_vline:
     j vpixel_draw_start              # otherwise, jump to the top of the loop
   vpixel_draw_end:                   # the label for the end of the pixel drawing loop
   jr $ra 
+
+
+
+
+
+
+
+
+
+
+
+
+
+###########################################
+## Additional rectangle drawing function ##
+###########################################
+# Input parameters:
+# - $a0: X coordinate of the top left corner of the rectangle
+# - #a1: Y coordinate of the top left corner of the rectangle
+# - $a2: Width of the rectangle
+# - $a3: Height of the rectangle
+add_draw_rect:
+  add $t5 $zero $zero       # setting the loop variable to 0
+  add_line_draw_start:
+    addi $sp, $sp, -4                # Move the stack pointer to an empty location
+    sw $a1, 0($sp)                  # Store $a1 on the stack for safe keeping.
+    addi $sp, $sp, -4                # Move the stack pointer to an empty location
+    sw $t5, 0($sp)                  # Store $t5 on the stack for safe keeping.
+    addi $sp, $sp, -4                # Move the stack pointer to an empty location
+    sw $ra, 0($sp)                  # Store $ra on the stack for safe keeping.
+    addi $sp, $sp, -4                # Move the stack pointer to an empty location
+    sw $a0, 0($sp)                  # Store $a0 on the stack for safe keeping.
+    
+    jal add_draw_hline                   # draw a line (using the X, Y and width parameters)
+    
+    lw $a0, 0($sp)                  # Restore $a0 from the stack.
+    addi $sp, $sp, 4                # move the stack pointer to the current top of the stack.
+    lw $ra, 0($sp)                  # Restore $ra from the stack.
+    addi $sp, $sp, 4                # move the stack pointer to the current top of the stack.
+    lw $t5, 0($sp)                  # Restore $t5 from the stack.
+    addi $sp, $sp, 4                # move the stack pointer to the current top of the stack.
+    lw $a1, 0($sp)                  # Restore $a1 from the stack.
+    addi $sp, $sp, 4                # move the stack pointer to the current top of the stack.
+
+    addi $t5 $t5 1                  # increment loop var by 1 after drawing one line
+    addi $a1 $a1 1                  # increment y coordinate after each line
+    
+    beq $t5, $a3, add_line_draw_end     # break out of the loop if you hit the final row
+    j add_line_draw_start               # jump to the start of the row drawing loop
+  add_line_draw_end:  
+    jr $ra                          # return to the calling program
+
+
+
+
+
+
+
+
+  
+## The horizontal line drawing function ## WORKS!!
+# Input parameters:
+# - $a0: X coordinate of the start of the line
+# - #a1: Y coordinate of the start of the line
+# - $a2: Length of the line
+add_draw_hline:
+  add $t5 $zero $zero               # setting the counter to 0
+
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  la $t0 ADD_GRID
+
+  add $t7 $t0 $v0                 # setting the horizontal offset
+  add $t7 $t7 $v1                 # setting the vertical offset
+
+  
+  add_hpixel_draw_start:                 # the starting label for the pixel drawing loop
+    sw $t1, 0( $t7 )                # paint the current bitmap location.
+    
+    addi $t5 $t5 1                  # add 1 to the counter
+    addi $t7, $t7, 4                # move to the next pixel in the row.
+    beq $t5, $a2, hpixel_draw_end     # break out of the loop if you hit the final pixel
+    j hpixel_draw_start              # otherwise, jump to the top of the loop
+  add_hpixel_draw_end:                   # the label for the end of the pixel drawing loop
+  jr $ra 
+
+
 
 
 
