@@ -31,6 +31,117 @@
     addi $sp, $sp, 4        # move the stack pointer to the top element of the stack.
 .end_macro
 
+
+# MERGEEEEEEEEE
+# The macro for sleeping.
+.macro sleep (%ms)
+    li $v0, 32          # Sleep syscall
+    li $a0, %ms         # Sleep for 'ms' milliseconds
+    syscall
+.end_macro
+
+# MERGEEEEEEEE
+# The macro for playing a note.
+.macro play (%pitch, %playduration, %instrument, %volume, %sleepduration)
+    li $v0 31
+    li $a0 %pitch
+    li $a1 %playduration
+    li $a2 %instrument
+    li $a3 %volume
+    syscall
+    sleep (%sleepduration)
+.end_macro
+
+
+# MERGEEEEEEEEEEE
+# The macro for storing notes.
+.macro store_note (%pitch, %note_duration, %pause_duration, %index)
+
+    la $t0, PITCH_GRID      # t0 = base address for music
+    li $t3 %pitch
+    sw $t3 %index($t0)
+    la $t1, NOTE_DURATION_GRID
+    li $t3 %note_duration
+    sw $t3 %index($t1)
+    la $t2 PAUSE_DURATION_GRID
+    li $t3 %pause_duration
+    sw $t3 %index($t2)
+
+.end_macro
+
+
+# The macro for fever.                               MERGEEEEEEE BUT FIND WAY TO MAKE MORE EFFICIENT
+.macro play2 (%pitch, %playduration, %instrument, %volume, %sleepduration)
+    li $v0 31
+    
+    addi $t9 %pitch -70
+    beq $t9 $zero load_70       # if pitch was 70
+    beq $t9 1 load_71
+    beq $t9 -1 load_69
+    beq $t9 -3 load_67
+    beq $t9 -11 load_59
+    beq $t9 -10 load_60
+    beq $t9 -9 load_61
+    beq $t9 -8 load_62
+    
+    load_70: li $a0 70
+    j play_duration
+    load_71: li $a0 71
+    j play_duration
+    load_69: li $a0 69
+    j play_duration
+    load_67: li $a0 67
+    j play_duration
+    load_59: li $a0 59
+    j play_duration
+    load_60: li $a0 60
+    j play_duration
+    load_61: li $a0 61
+    j play_duration
+    load_62: li $a0 62
+    j play_duration
+    
+    play_duration:
+    addi $t9 %playduration -500
+    beq $t9 $zero load_500
+    beq $t9 -250 load_250
+    beq $t9 500 load_1000
+    
+    
+    load_500: li $a1 500
+    j sys_call
+    load_250: li $a1 250
+    j sys_call
+    load_1000: li $a1 1000
+    j sys_call
+    
+    sys_call:
+    li $a2 %instrument
+    li $a3 %volume
+    syscall
+    
+    # sleep:
+    addi $t9 %sleepduration -300
+    beq $t9 $zero load_300  
+    beq $t9 700 load_1000_s  
+    beq $t9 -150 load_150
+    
+    load_300:
+    sleep (300)
+    j end
+    load_1000_s:
+    sleep (1000)
+    j end
+    load_150:
+    sleep (150)
+    j end
+    
+    end:
+    
+.end_macro
+
+
+
     .data
 ##############################################################################
 # Immutable Data
@@ -52,6 +163,16 @@ ORI_GRID:
 
 DROP_SPD:
     .space 4
+
+# The address of the music grid. MERGEEEEEEEE
+PITCH_GRID:
+    .space 200      # (50 * 4)      ( 0x1001800c )
+    
+NOTE_DURATION_GRID:             # ( 0x100180d4 )
+    .space 200
+
+PAUSE_DURATION_GRID:            # ( 0x1001819c )
+    .space 200
 
 
 ##############################################################################
@@ -77,6 +198,9 @@ COLOR1:
 COLOR2:
     .word 0
 
+NOTE_INDEX:
+    .space 8            # ( 0x10018278 )        MERGEEEEEEEEEEEE
+
 
     
 ##############################################################################
@@ -86,7 +210,7 @@ COLOR2:
 	.globl main
 
     # Run the game.
-main:
+main:    
     # setting inital block speed
     la $t0, DROP_SPD       # $t0 = location of original fall speed
     li $t1 3000000         
@@ -105,6 +229,15 @@ main:
 
     # 1: drawing the capsule at the bottle neck
     jal draw_start_capsule
+    
+    # starting music here                   MERGEEEEEEEEEEEEEEEE
+    la $t0 NOTE_INDEX
+    li $t1 0            # setting note_index to 0
+    sw $t1 0($t0)
+
+    jal store_fever_notes
+
+
 
 # a0: x pos
 # a1: y pos
@@ -114,24 +247,65 @@ game_loop:
     beq $t0, $zero, handle_collision  # If collision, handle it
     j draw_new_capsule_end
 
-handle_collision:
-    push ($a0)
-    li $v0, 32
-    li $a0, 50
-    syscall                     # Sleep (short pause for visibility)
-    pop ($a0)
-
-    jal save_orientation
-
-    jal remove_and_drop
-    jal draw_start_capsule      # Start the next capsule
-    j game_loop
+    handle_collision:
+        push ($a0)
+        li $v0, 32
+        li $a0, 50
+        syscall                     # Sleep (short pause for visibility)
+        pop ($a0)
+    
+        jal save_orientation
+    
+        jal remove_and_drop
+        jal draw_start_capsule      # Start the next capsule
+        j game_loop
 
 
 
 draw_new_capsule_end:
     la $t9, DROP_SPD       # $t0 = location of original fall speed
     lw $t1, 0($t9)                 # Set timer for move_down from memory
+
+# lw $t0, ADDR_DSPL       # $t0 = base address for display
+
+j play_fever
+
+
+# music                             MERGEEEEEEEEEEEE
+play_fever:
+    la $t4, NOTE_INDEX          # get note index
+    lw $t4, 0($t4)
+    
+    la $t1, PITCH_GRID                  # load addresses of grids
+    la $t2, NOTE_DURATION_GRID
+    la $t3, PAUSE_DURATION_GRID
+    
+    addi $t9 $zero 4            # t9 stores 4 for multiplication 
+    multu $t4 $t9
+    mflo $t5                    # calculates offset
+    add $t1 $t1 $t5         # add offset for each grid
+    add $t2 $t2 $t5
+    add $t3 $t3 $t5
+    
+    lw $t1, 0($t1)          # load in that value
+    lw $t2, 0($t2)
+    lw $t3, 0($t3)
+
+    play2 ($t1, $t2, 6, 30, $t3)        # play note
+    
+    blt $t4 32 increment_index        # if more notes to play, increment index
+    la $t9 NOTE_INDEX           # otherwise, reset NOTE_INDEX to 0
+    li $t1 0            # setting note_index to 0
+    sw $t1 0($t9)
+    j continue
+    increment_index:
+    addi $t4 $t4 1      # increment for note_index
+    sw $t4, NOTE_INDEX
+     
+    continue:
+    j keyboard_check_loop
+
+
 
 keyboard_check_loop:
     lw $t0, ADDR_KBRD           # Load keyboard base address
@@ -148,6 +322,9 @@ keyboard_check_loop:
     timer_check:
     j game_loop                 # Restart main loop
 
+
+
+    
 # a0: x pos
 # a1: y pos
 # a2: orientation, 0 for h, 1 for v
@@ -200,6 +377,7 @@ keyboard_input:
   
   call_quit:
       jal quit        
+
 
 
 #################################
@@ -957,6 +1135,61 @@ erase_capsule:
 
 
 
+######################################
+##  Store Notes for Fever Function  ##
+######################################
+store_fever_notes:
+    
+    store_note (70, 500, 300, 0)     # Bb4
+    store_note (71, 500, 300, 4)     # B4
+    store_note (70, 500, 300, 8)     # Bb4
+    store_note (71, 500, 300, 12)     # B4
+    store_note (69, 500, 300, 16)     # A4
+    store_note (67, 500, 300, 20)     # G4
+    store_note (67, 500, 300, 24)     # G4
+    store_note (69, 500, 300, 28)     # A4
+    store_note (70, 500, 300, 32)     # Bb4
+    store_note (71, 500, 300, 36)     # B4
+    store_note (69, 500, 300, 40)     # A4
+    store_note (67, 500, 300, 44)     # G4
+    store_note (67, 1000, 1000, 48)     # G4
+    
+    store_note (70, 500, 300, 52)     # Bb4
+    store_note (71, 500, 300, 56)     # B4
+    store_note (70, 500, 300, 60)     # Bb4
+    store_note (71, 500, 300, 64)     # B4
+    store_note (69, 500, 300, 68)     # A4
+    store_note (67, 500, 300, 72)     # G4
+    store_note (67, 500, 300, 76)     # G4
+    store_note (69, 500, 300, 80)     # A4
+    
+    store_note (59, 250, 150, 84)     # B3
+    store_note (59, 250, 150, 88)
+    store_note (59, 500, 300, 92)
+    store_note (60, 250, 150, 96)     # C4
+    store_note (60, 250, 150, 100)
+    store_note (60, 500, 300, 104)
+    store_note (61, 250, 150, 108)     # C#4
+    store_note (61, 250, 150, 112)
+    store_note (61, 500, 300, 116)
+    store_note (62, 250, 150, 120)     # D4
+    store_note (62, 250, 150, 124)
+    store_note (62, 500, 300, 128)
+
+
+push ($ra)
+
+
+
+
+
+pop ($ra)
+
+jr $ra
+
+
+
+
 
 
 ################################
@@ -1691,7 +1924,12 @@ check_row:
     push ($t6)
     
     jal draw_rect           # call draw_rect to erase row
-
+    
+    # kate - gunshot
+    sleep (50)
+    play (60, 300, 127, 30, 10)
+    # sleep (100)
+    
     pop ($t6)
     pop ($a0)
     pop ($a1)
@@ -1993,7 +2231,12 @@ remove_columns:
     push ($t6)
     
     jal draw_rect           # call draw_rect to erase column
-
+    
+    # kate - gunshot
+    sleep (50)
+    play (60, 300, 127, 30, 10)
+    # sleep (100)
+    
     pop ($t6)
     pop ($a0)
     pop ($a1)
@@ -2853,7 +3096,6 @@ add_draw_hline:
     j hpixel_draw_start              # otherwise, jump to the top of the loop
   add_hpixel_draw_end:                   # the label for the end of the pixel drawing loop
   jr $ra 
-
 
 
 
