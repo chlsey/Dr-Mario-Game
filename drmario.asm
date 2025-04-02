@@ -207,6 +207,9 @@ X_COORDS:
 Y_COORDS:
   .space 52
 
+ANIMATION_PHASE:
+  .space 4
+
 
     
 ##############################################################################
@@ -277,8 +280,6 @@ draw_new_capsule_end:
     la $t9, DROP_SPD       # $t0 = location of original fall speed
     lw $t1, 0($t9)                 # Set timer for move_down from memory
 
-# lw $t0, ADDR_DSPL       # $t0 = base address for display
-
 j play_fever
 
 
@@ -327,10 +328,11 @@ keyboard_check_loop:
     
     bgtz $t1, keyboard_check_loop # If timer hasn't reached 0, keep checking input
     
-    # Timer has reached 0, move capsule down
-   
+    # Timer has reached 0, move capsule down, change animation
+
+    # jal animate
     
-    jal move_down  
+    jal move_down 
 
     timer_check:
     j game_loop                 # Restart main loop
@@ -395,9 +397,9 @@ keyboard_input:
 
 populate_virus_grid:
   li $s0 8
-  li $s1 13
+  li $s1 10
   li $s2 20
-  li $s3 16
+  li $s3 25
 
   la $s4 X_COORDS
   la $s5 Y_COORDS
@@ -443,7 +445,7 @@ starting_viruses:
   
   li $v0 42
   li $a0 0
-  li $a1 13
+  li $a1 10
 
   syscall
 
@@ -533,7 +535,7 @@ starting_viruses:
   
   li $v0 42
   li $a0 0
-  li $a1 13
+  li $a1 10
 
   syscall
 
@@ -634,7 +636,7 @@ starting_viruses:
   li $t1 0xF16838
   li $v0 42
   li $a0 0
-  li $a1 13
+  li $a1 10
 
   syscall
 
@@ -1950,7 +1952,7 @@ remove_and_drop:
 
   la $t6 DROP_SPD
   lw $t5 0($t6)
-  addi $t5 $t5 60000          # increase drop speed every time a row/column removed
+  addi $t5 $t5 100000          # increase drop speed every time a row/column removed
 
   sw $t5 0($t6)               # write it back in
 
@@ -3171,6 +3173,7 @@ draw_start_capsule:
 ##########################
 #- loops for user input
 game_over:
+  
   li $t0 0                       # t0 keeps track of play again or quit (0 for try again default)
 
   jal game_over_letters
@@ -3196,6 +3199,8 @@ game_over:
     
   select_retry:
 
+    play (60, 500, 53, 50, 300)
+
     jal game_over_letters
     
     li $a0 4
@@ -3203,7 +3208,7 @@ game_over:
     li $a2 31
     li $a3 1
 
-    li $t1 0xD3D3D3
+    li $t1 0xE3F6FF
 
     jal draw_rect
 
@@ -3235,6 +3240,8 @@ game_over:
 
 
   select_quit:
+
+    play (60, 500, 52, 50, 300)
     
     jal game_over_letters
     
@@ -3243,7 +3250,7 @@ game_over:
     li $a2 21
     li $a3 1
 
-    li $t1 0xD3D3D3
+    li $t1 0xE3F6FF
 
     jal draw_rect
 
@@ -3293,7 +3300,7 @@ game_over_letters:
   li $a2 64
   li $a3 64
 
-  li $t1 0
+  li $t1 0x89CFF0
 
   jal draw_rect
   
