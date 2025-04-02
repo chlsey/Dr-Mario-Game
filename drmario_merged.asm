@@ -350,10 +350,19 @@ main:
 
     # setting inital block speed
     la $t0, DROP_SPD       # $t0 = location of original fall speed
-    li $t1 6000000         
+    li $t1 4000000         
     sw $t1 0($t0)          # load in the starting speed
     
     lw $t0, ADDR_DSPL       # $t0 = base address for display
+
+    li $t1, 0xc0ebcf        # $t1 = white
+    addi $a0 $zero 0        # setting the x pos of rect
+    addi $a1 $zero 0        # setting the y pos of rect
+    addi $a2 $zero 64       # setting width of the rect
+    addi $a3 $zero 64       # setting height of the rect
+
+    jal draw_rect
+    
     li $t1, 0x568366        # $t1 = green
     addi $a0 $zero 1        # setting the x pos of rect
     addi $a1 $zero 1        # setting the y pos of rect
@@ -363,6 +372,8 @@ main:
     jal draw_rect           # call the rectangle drawing function
     
     jal draw_bottle
+
+    jal draw_bg
 
     jal starting_viruses
 
@@ -2233,7 +2244,7 @@ remove_and_drop:
 
   la $t6 DROP_SPD
   lw $t5 0($t6)
-  addi $t5 $t5 100000          # increase drop speed every time a row/column removed
+  addi $t5 $t5 -200000          # increase drop speed every time a row/column removed
 
   sw $t5 0($t6)               # write it back in
 
@@ -3557,6 +3568,9 @@ game_over:
     j quit 
 
   retry_br:
+    play (60, 500, 126, 50, 300)
+
+    sleep (500)
     
     j main
 
@@ -5297,6 +5311,1780 @@ add_draw_hline:
     j hpixel_draw_start              # otherwise, jump to the top of the loop
   add_hpixel_draw_end:                   # the label for the end of the pixel drawing loop
   jr $ra 
+
+
+
+draw_bg:
+  push ($ra)
+
+
+  jal draw_yellow
+
+  jal draw_orange
+
+  jal draw_green
+
+  jal draw_mario
+
+  jal draw_big_cap
+
+
+  pop ($ra)
+  jr $ra
+
+
+
+
+draw_yellow:
+  push ($ra)
+
+  li $t1 0xFFCE55           # load in yellow
+
+  li $a0 9
+  li $a1 4
+  li $a2 4
+  li $a3 12
+
+  jal draw_rect
+
+  li $a0 8
+  li $a1 5
+  li $a2 1
+  li $a3 11
+
+  jal draw_rect
+
+  li $a0 13
+  li $a1 5
+  li $a2 1
+  li $a3 11
+
+  jal draw_rect
+
+  li $a0 7
+  li $a1 6
+  li $a2 1
+  li $a3 10
+
+  jal draw_rect
+  
+
+  li $a0 14
+  li $a1 6
+  li $a2 1
+  li $a3 10
+
+  jal draw_rect
+
+  
+  li $a0 14
+  li $a1 6
+  li $a2 1
+  li $a3 10
+
+  jal draw_rect
+
+
+  li $a0 4
+  li $a1 10
+  li $a2 13
+  li $a3 5
+
+  jal draw_rect
+
+  li $a0 17
+  li $a1 9
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  li $a0 18
+  li $a1 9
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  
+  li $a0 2
+  li $a1 12
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+
+
+# sunglasses and outline
+
+  li $t1 0
+
+  li $a0 10
+  li $a1 3
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+
+  li $a0 9
+  li $a1 4
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+
+  li $a0 12
+  li $a1 4
+
+  jal draw_rect
+
+
+  li $a0 8
+  li $a1 5
+
+  jal draw_rect
+
+  li $a0 13
+  li $a1 5
+
+  jal draw_rect
+
+  li $a0 7
+  li $a1 6
+
+  jal draw_rect
+
+
+  li $a0 14
+  li $a1 6
+
+  jal draw_rect
+
+  li $a0 6
+  li $a1 7
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 7
+
+  jal draw_rect
+
+
+  li $a0 5
+  li $a1 8
+  li $a2 3
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 14
+  li $a1 8
+
+  jal draw_rect
+
+  li $a0 7
+  li $a1 8
+  li $a2 8
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 7
+  li $a1 8
+  li $a2 3
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 12
+  li $a1 8
+
+  jal draw_rect
+
+  li $a0 2
+  li $a1 11
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 4
+  li $a1 9
+  li $a2 4
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 14
+  li $a1 9
+
+  jal draw_rect
+
+
+  #hands + feet
+
+  li $t1 0xF16838
+
+  li $a0 2
+  li $a1 13
+  li $a2 3
+  li $a3 4
+
+  jal draw_rect
+
+  li $a0 6
+  li $a1 16
+  li $a2 3
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 13
+  li $a1 16
+
+  jal draw_rect
+
+  li $a0 20
+  li $a1 6
+  li $a2 2
+  li $a3 4
+
+  jal draw_rect
+
+
+# more outlining
+
+  li $t1 0
+
+  li $a0 3
+  li $a1 12
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 4
+  li $a1 13
+  li $a3 2
+  
+
+  jal draw_rect
+
+
+  li $a0 1
+  li $a1 12
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+
+  li $a0 2
+  li $a1 17
+  li $a2 3
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 4
+  li $a1 16
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 5
+  li $a1 14
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 6
+  li $a1 15
+  li $a2 11
+  li $a3 1
+
+  jal draw_rect
+
+
+  li $a0 6
+  li $a1 17
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+
+  li $a0 12
+  li $a1 17
+
+  jal draw_rect
+
+
+  li $a0 9
+  li $a1 15
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+
+  li $a0 12
+  li $a1 15
+
+  jal draw_rect
+
+
+  li $a0 16
+  li $a1 14
+
+  jal draw_rect
+
+  li $a0 18
+  li $a1 10
+
+  jal draw_rect
+
+  li $a0 17
+  li $a1 13
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 18
+  li $a1 8
+
+  jal draw_rect
+
+  li $a0 2
+  li $a1 13
+
+  jal draw_rect
+
+
+# mouth
+  li $a0 6
+  li $a1 12
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 12
+
+  jal draw_rect
+
+  li $a0 7
+  li $a1 13
+  li $a2 8
+  li $a3 1
+
+  jal draw_rect
+
+
+# mouth end
+
+  li $a0 19
+  li $a1 5
+  li $a2 1
+  li $a3 6
+
+  jal draw_rect
+
+  li $a0 19
+  li $a1 5
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 21
+  li $a1 6
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 22
+  li $a1 7
+  li $a2 1
+  li $a3 4
+
+  jal draw_rect
+
+  li $a0 19
+  li $a1 10
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+
+# eyes
+
+  li $t1 0xDBF68F
+
+  li $a0 8
+  li $a1 9
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 13
+  li $a1 9
+
+  jal draw_rect
+
+
+
+  pop ($ra)
+
+  jr $ra
+
+
+
+draw_orange:
+  push ($ra)
+
+  li $t1 0xF16838
+
+  li $a0 4
+  li $a1 26
+  li $a2 11
+  li $a3 9
+
+  jal draw_rect
+
+  li $a0 4
+  li $a1 24
+  li $a2 3
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 12
+  li $a1 24
+
+  jal draw_rect
+
+
+  li $a0 3
+  li $a1 26
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+
+  li $a0 15
+  li $a1 26
+  
+  jal draw_rect
+
+
+  li $a0 3
+  li $a1 33
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+
+  li $a0 15
+  li $a1 33
+
+  jal draw_rect
+
+
+  li $a0 5
+  li $a1 35
+  li $a2 3
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 11
+  li $a1 35
+
+  jal draw_rect
+
+
+# hands and feet
+
+  li $t1 0xDBF68F
+
+  li $a0 1
+  li $a1 32
+  li $a2 2
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 16
+  li $a1 32
+
+  jal draw_rect
+
+  li $a0 3
+  li $a1 36
+  li $a2 4
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 12
+  li $a1 36
+
+  jal draw_rect
+
+
+# outlining
+
+  li $t1 0
+
+  li $a0 7
+  li $a1 24
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 11
+  li $a1 24
+
+  jal draw_rect
+
+  li $a0 8
+  li $a1 25
+
+  jal draw_rect
+
+  li $a0 10
+  li $a1 25
+
+  jal draw_rect
+
+  li $a0 2
+  li $a1 26
+
+  jal draw_rect
+
+  li $a0 16
+  li $a1 26
+
+  jal draw_rect
+
+  li $a0 7
+  li $a1 25
+  li $a2 5
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 5
+  li $a1 23
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 12
+  li $a1 23
+
+  jal draw_rect
+
+  li $a0 4
+  li $a1 24
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 3
+  li $a1 25
+
+  jal draw_rect
+
+  li $a0 14
+  li $a1 24
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 25
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 25
+
+  jal draw_rect
+
+  li $a0 3
+  li $a1 28
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 28
+
+  jal draw_rect
+
+  li $a0 5
+  li $a1 28
+  li $a2 3
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 11
+  li $a1 28
+
+  jal draw_rect
+
+  li $a0 4
+  li $a1 29
+  li $a2 2
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 13
+  li $a1 29
+
+  jal draw_rect
+
+  li $a0 8
+  li $a1 30
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 10
+  li $a1 30
+
+  jal draw_rect
+
+  li $a0 9
+  li $a1 31
+
+  jal draw_rect
+
+  li $a0 6
+  li $a1 34
+  li $a2 6
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 11
+  li $a1 33
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 12
+  li $a1 32
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 8
+  li $a1 35
+  li $a2 3
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 31
+
+  jal draw_rect
+
+  li $a0 1
+  li $a1 34
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 34
+
+  jal draw_rect
+
+  li $a0 5
+  li $a1 36
+
+  jal draw_rect
+
+  li $a0 11
+  li $a1 36
+
+  jal draw_rect
+
+
+  li $a0 1
+  li $a1 31
+  li $a2 5
+  li $a3 1
+
+  jal draw_rect
+  
+  li $a0 3
+  li $a1 31
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 31
+
+  jal draw_rect
+  
+  li $a0 0
+  li $a1 32
+
+  jal draw_rect
+
+  li $a0 18
+  li $a1 32
+
+  jal draw_rect
+
+  li $a0 2
+  li $a1 33
+
+  jal draw_rect
+
+  li $a0 16
+  li $a1 33
+
+  jal draw_rect
+
+  li $a0 7
+  li $a1 36
+
+  jal draw_rect
+
+  li $a0 11
+  li $a1 36
+
+  jal draw_rect
+
+  li $a0 3
+  li $a1 35
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 14
+  li $a1 35
+
+  jal draw_rect
+
+  li $a0 16
+  li $a1 36
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 2
+  li $a1 36
+
+  jal draw_rect
+
+  li $a0 2
+  li $a1 38
+  li $a2 5
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 12
+  li $a1 38
+
+  jal draw_rect
+
+
+# eyes
+  li $t1 0xFFCE55
+
+  li $a0 7
+  li $a1 30
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 11
+  li $a1 30
+
+  jal draw_rect
+
+
+  pop ($ra)
+
+  jr $ra
+
+
+
+draw_green:
+  push ($ra)
+
+  li $t1 0xDBF68F
+
+  li $a0 5
+  li $a1 45
+  li $a2 10
+  li $a3 14
+
+  jal draw_rect
+
+  li $a0 3
+  li $a1 46
+  li $a2 2
+  li $a3 12
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 46
+  li $a2 2
+  li $a3 15
+
+  jal draw_rect
+
+  li $a0 17
+  li $a1 57
+  li $a2 2
+  li $a3 3
+
+  jal draw_rect
+
+# tail color
+  li $t1 0xFFCE55
+
+  li $a0 19
+  li $a1 59
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+  
+
+# outline and eyes socket
+
+  li $t1 0
+
+  li $a0 6
+  li $a1 46
+  li $a2 3
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 11
+  li $a1 46
+
+  jal draw_rect
+  
+  li $a0 2
+  li $a1 47
+  li $a2 5
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 13
+  li $a1 47
+
+  jal draw_rect
+
+
+  li $a0 6
+  li $a1 46
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 8
+  li $a1 44
+  li $a2 4
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 5
+  li $a1 44
+  li $a2 10
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 4
+  li $a1 45
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 3
+  li $a1 46
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 45
+
+  jal draw_rect
+
+  li $a0 16
+  li $a1 46
+
+  jal draw_rect
+
+  li $a0 3
+  li $a1 57
+
+  jal draw_rect
+
+  li $a0 4
+  li $a1 58
+
+  jal draw_rect
+
+  li $a0 16
+  li $a1 57
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 58
+
+  jal draw_rect
+
+  li $a0 18
+  li $a1 57
+
+  jal draw_rect
+
+  li $a0 18
+  li $a1 59
+
+  jal draw_rect
+
+  li $a0 21
+  li $a1 59
+
+  jal draw_rect
+
+  li $a0 2
+  li $a1 47
+  li $a2 1
+  li $a3 10
+
+  jal draw_rect
+
+  li $a0 17
+  li $a1 47
+
+  jal draw_rect
+
+  li $a0 5
+  li $a1 59
+  li $a2 10
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 15
+  li $a1 60
+  li $a2 6
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 19
+  li $a1 58
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 8
+  li $a1 50
+  li $a2 4
+  li $a3 6
+
+  jal draw_rect
+
+  li $a0 7
+  li $a1 53
+  li $a2 6
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 6
+  li $a1 53
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 5
+  li $a1 52
+  li $a2 2
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 13
+  li $a1 52
+
+  jal draw_rect
+
+  li $a0 6
+  li $a1 51
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 13
+  li $a1 51
+
+  jal draw_rect
+
+# eyes
+  li $t1 0xF16838
+
+  li $a0 7
+  li $a1 47
+  li $a2 1
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 12
+  li $a1 47
+
+  jal draw_rect
+  
+  pop ($ra)
+
+  jr $ra
+
+
+draw_mario:
+  push ($ra)
+
+  #skin
+
+  li $t1 0xf4cda6
+
+  li $a0 49
+  li $a1 19
+  li $a2 10
+  li $a3 8
+
+  jal draw_rect
+
+  li $a0 46
+  li $a1 22
+  li $a2 16
+  li $a3 2
+
+  jal draw_rect
+
+
+# hat
+
+  li $t1 0xda5842
+
+  li $a0 48
+  li $a1 15
+  li $a2 12
+  li $a3 4
+
+  jal draw_rect
+
+  li $a0 50
+  li $a1 13
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 48
+  li $a1 16
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  li $a0 59
+  li $a1 16
+
+  jal draw_rect
+
+#hair
+  li $t1 0x6c320c
+  
+  li $a0 51
+  li $a1 17
+  li $a2 6
+  li $a3 2
+
+  jal draw_rect
+
+
+  li $a0 48
+  li $a1 26
+  li $a2 2
+  li $a3 6
+
+  jal draw_rect
+
+  li $a0 58
+  li $a1 26
+
+  jal draw_rect
+
+  li $a0 50
+  li $a1 31
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 57
+  li $a1 31
+
+  jal draw_rect
+
+
+# cheeks
+  li $t1 0xfdb3b4
+
+  li $a0 49
+  li $a1 22
+  li $a2 2
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 57
+  li $a1 22
+
+  jal draw_rect
+
+  # eyes
+  li $t1 0xffffff
+
+  li $a0 50
+  li $a1 20
+  li $a2 3
+  li $a3 3
+
+  jal draw_rect
+
+  li $a0 55
+  li $a1 20
+  
+  jal draw_rect
+
+# hat white
+  li $a0 52
+  li $a1 16
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 53
+  li $a1 15
+  li $a2 2
+
+  jal draw_rect
+
+# eye details
+
+  li $t1 0xc1c1c1
+
+  li $a0 51
+  li $a1 21
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 56
+  li $a1 21
+
+  jal draw_rect
+  
+  li $t1 0x808080
+
+  li $a0 52
+  li $a1 22
+
+  jal draw_rect
+
+  li $a0 55
+  li $a1 22
+
+  jal draw_rect
+
+# nose
+  li $t1 0xda5842
+
+  li $a0 53
+  li $a1 23
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+#outlining
+
+  li $t1 0
+
+  li $a0 52
+  li $a1 12
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 50
+  li $a1 13
+  li $a2 2
+
+  jal draw_rect
+
+  li $a0 56
+  li $a1 13
+
+  jal draw_rect
+
+  li $a0 49
+  li $a1 14
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 48
+  li $a1 15
+
+  jal draw_rect
+
+  li $a0 58
+  li $a1 14
+
+  jal draw_rect
+
+  li $a0 59
+  li $a1 15
+
+  jal draw_rect
+
+  li $a0 47
+  li $a1 16
+  li $a2 1
+  li $a3 6
+
+  jal draw_rect
+
+  li $a0 60
+  li $a1 16
+
+  jal draw_rect
+
+  li $a0 46
+  li $a1 21
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 58
+  li $a1 21
+
+  jal draw_rect
+
+  li $a0 50
+  li $a1 20
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 56
+  li $a1 20
+
+  jal draw_rect
+
+  li $a0 51
+  li $a1 17
+
+  jal draw_rect
+
+  li $a0 55
+  li $a1 17
+
+  jal draw_rect
+
+  li $a0 49
+  li $a1 32
+
+  jal draw_rect
+  
+  li $a0 57
+  li $a1 32
+
+  jal draw_rect
+
+  li $a0 50
+  li $a1 18
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 49
+  li $a1 19
+
+  jal draw_rect
+
+  li $a0 57
+  li $a1 18
+
+  jal draw_rect
+
+  li $a0 58
+  li $a1 19
+
+  jal draw_rect
+
+  li $a0 52
+  li $a1 21
+
+  jal draw_rect
+
+  li $a0 55
+  li $a1 21
+
+  jal draw_rect
+
+  li $a0 45
+  li $a1 22
+
+  jal draw_rect
+
+  li $a0 62
+  li $a1 22
+
+  jal draw_rect
+
+  li $a0 46
+  li $a1 23
+
+  jal draw_rect
+
+  li $a0 61
+  li $a1 23
+
+  jal draw_rect
+
+  li $a0 49
+  li $a1 26
+
+  jal draw_rect
+
+  li $a0 48
+  li $a1 31
+
+  jal draw_rect
+
+  li $a0 51
+  li $a1 31
+
+  jal draw_rect
+
+  li $a0 56
+  li $a1 31
+
+  jal draw_rect
+
+  li $a0 59
+  li $a1 31
+
+  jal draw_rect
+
+  li $a0 58
+  li $a1 26
+
+  jal draw_rect
+
+  li $a0 51
+  li $a1 24
+
+  jal draw_rect
+
+  li $a0 56
+  li $a1 24
+
+  jal draw_rect
+
+  li $a0 48
+  li $a1 21
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  li $a0 59
+  li $a1 21
+
+  jal draw_rect
+
+  li $a0 47
+  li $a1 24
+  li $a2 1
+  li $a3 7
+
+  jal draw_rect
+
+  li $a0 60
+  li $a1 24
+
+  jal draw_rect
+
+  li $a0 52
+  li $a1 25
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 50
+  li $a1 27
+  li $a2 1
+  li $a3 4
+
+  jal draw_rect
+
+  li $a0 57
+  li $a1 27
+
+  jal draw_rect
+
+  pop ($ra)
+
+  jr $ra
+
+
+draw_big_cap:
+  push ($ra)
+
+  li $t1 0xDBF68F
+
+  li $a0 55
+  li $a1 37
+  li $a2 6
+  li $a3 7
+
+  jal draw_rect
+
+  li $a0 53
+  li $a1 38
+  li $a2 2
+  li $a3 4
+
+  jal draw_rect
+
+  li $a0 61
+  li $a1 39
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  li $a0 57
+  li $a1 44
+  li $a2 4
+  li $a3 2
+
+  jal draw_rect
+
+  li $a0 58
+  li $a1 46
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 52
+  li $a1 40
+
+  jal draw_rect
+
+# other half
+
+  li $t1 0xFFCE55
+
+
+  li $a0 48
+  li $a1 43
+  li $a2 8
+  li $a3 8
+
+  jal draw_rect
+
+  li $a0 47
+  li $a1 45
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  li $a0 56
+  li $a1 45
+  li $a2 1
+  li $a3 4
+
+  jal draw_rect
+
+  li $a0 49
+  li $a1 51
+  li $a2 5
+  li $a3 1
+
+  jal draw_rect
+
+  li $a0 50
+  li $a1 42
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+
+  # outline
+
+  li $t1 0
+
+  li $a0 55
+  li $a1 36
+  li $a2 5
+  li $a3 1
+
+  jal draw_rect
+  
+  li $a0 62
+  li $a1 39
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+  
+  li $a0 50
+  li $a1 41
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+  
+  li $a0 62
+  li $a1 39
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+  
+  li $a0 57
+  li $a1 45
+  li $a2 1
+  li $a3 4
+
+  jal draw_rect
+
+  li $a0 46
+  li $a1 45
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+  
+  li $a0 49
+  li $a1 52
+  li $a2 5
+  li $a3 1
+
+  jal draw_rect
+  
+  li $a0 60
+  li $a1 37
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+  
+  li $a0 61
+  li $a1 38
+
+  jal draw_rect
+
+  li $a0 54
+  li $a1 37
+
+  jal draw_rect
+
+  li $a0 53
+  li $a1 38
+
+  jal draw_rect
+
+  li $a0 52
+  li $a1 39
+
+  jal draw_rect
+
+  li $a0 51
+  li $a1 40
+
+  jal draw_rect
+
+  li $a0 61
+  li $a1 44
+
+  jal draw_rect
+
+  li $a0 60
+  li $a1 45
+
+  jal draw_rect
+
+  li $a0 59
+  li $a1 46
+
+  jal draw_rect
+
+  li $a0 58
+  li $a1 47
+
+  jal draw_rect
+
+  li $a0 56
+  li $a1 49
+
+  jal draw_rect
+
+  li $a0 55
+  li $a1 50
+
+  jal draw_rect
+
+  li $a0 54
+  li $a1 51
+  
+  jal draw_rect
+
+  li $a0 49
+  li $a1 42
+
+  jal draw_rect
+
+  li $a0 48
+  li $a1 43
+
+  jal draw_rect
+
+  li $a0 47
+  li $a1 44
+
+  jal draw_rect
+
+  li $a0 47
+  li $a1 50
+
+  jal draw_rect
+
+  li $a0 48
+  li $a1 51
+
+  jal draw_rect
+
+  li $a0 54
+  li $a1 42
+
+  jal draw_rect
+
+  li $a0 55
+  li $a1 43
+
+  jal draw_rect
+
+  li $a0 56
+  li $a1 44
+
+  jal draw_rect
+
+# highlights
+  li $t1 0xffffff
+
+  li $a0 56
+  li $a1 38
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+
+  li $a0 55
+  li $a1 39
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+  
+  li $a0 51
+  li $a1 43
+  
+  jal draw_rect
+
+  li $t1 0xfae7c8
+  
+  li $a0 52
+  li $a1 49
+  
+  jal draw_rect
+
+  li $a0 50
+  li $a1 50
+  li $a2 2
+  li $a3 1
+  
+  jal draw_rect
+  
+
+  pop ($ra)
+
+  jr $ra
 
 
 
