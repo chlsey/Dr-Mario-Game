@@ -335,6 +335,8 @@ Y_COORDS:
 ANIMATION_PHASE:
   .space 4
 
+RETRY:
+  .word 0
 
     
 ##############################################################################
@@ -345,7 +347,6 @@ ANIMATION_PHASE:
 
     # Run the game.
 main:    
-
     jal populate_virus_grid
 
     # setting inital block speed
@@ -379,7 +380,10 @@ main:
 
     # 1: drawing the capsule at the bottle neck
     jal draw_start_capsule
-    
+
+    lw $s3 RETRY
+
+    bne $zero $s3 game_loop
     
     push ($a0)
     # print string prompt asking for music choice
@@ -481,15 +485,15 @@ play_music:
     beq $t2 2 play_wii
     j play_spirited
     play_fever:
-        play2 ($t1, $t2, 90, 30, $t3)        # play note
+        play2 ($t1, $t2, 90, 70, $t3)        # play note
         blt $t4 32 increment_index        # if more notes to play, increment index
         j reset_notes
     play_wii:
-        play2 ($t1, $t2, 1, 30, $t3)        # play note
+        play2 ($t1, $t2, 1, 70, $t3)        # play note
         blt $t4 34 increment_index        # if more notes to play, increment index
         j reset_notes
     play_spirited:
-        play3 ($t1, $t2, 1, 30, $t3)
+        play3 ($t1, $t2, 1, 70, $t3)
         blt $t4 38 increment_index
     
     reset_notes:
@@ -1169,7 +1173,7 @@ pause:
 
   # draw to black
 
-  li $t1 0
+  li $t1 0x568366
   
   li $a0 0
   li $a1 0
@@ -2119,6 +2123,9 @@ push ($ra)
     store_note (64, 500, 300, 120)   
     store_note (64, 500, 300, 124)
     store_note (64, 1000, 1200, 128)
+
+    store_note (63, 1000, 600, 132)
+    store_note (62, 1000, 600, 136) 
 
 pop ($ra)
 jr $ra
@@ -3455,7 +3462,7 @@ draw_start_capsule:
 #- loops for user input
 game_over:
   
-  li $t0 0                       # t0 keeps track of play again or quit (0 for try again default)
+  li $t0 16                       # t0 keeps track of play again or quit (0 for try again default)
 
   jal game_over_letters
 
@@ -3514,7 +3521,7 @@ game_over:
 
     jal draw_rect
 
-    li $t0 0
+    li $t0 16
     
     j key_board_loop
 
@@ -3556,19 +3563,27 @@ game_over:
 
     jal draw_rect
 
-    li $t0 1
+    li $t0 0
 
     j key_board_loop
 
 
   enter_pressed:
 
-    beq $t0 $zero retry_br
+    li $s1 16
+
+    beq $t0 $s1 retry_br
 
     j quit 
 
   retry_br:
+    
     play (60, 500, 126, 50, 300)
+
+    la $s6 RETRY
+    li $s5 1
+
+    sw $s5 0($s6)
 
     sleep (500)
     
@@ -3584,7 +3599,7 @@ game_over_letters:
   li $a2 64
   li $a3 64
 
-  li $t1 0x89CFF0
+  li $t1 0x568366
 
   jal draw_rect
   
