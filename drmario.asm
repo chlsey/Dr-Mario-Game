@@ -319,20 +319,12 @@ keyboard_check_loop:
     bgtz $t1, keyboard_check_loop # If timer hasn't reached 0, keep checking input
     
     # Timer has reached 0, move capsule down
-    jal move_down  
+   
+    
+    # jal move_down  
 
     timer_check:
     j game_loop                 # Restart main loop
-
-
-
-starting_viruses:
-  li $v0 42
-  li $a0 0
-  li $a1 0
-
-  
-
 
 
     
@@ -388,6 +380,230 @@ keyboard_input:
   
   call_quit:
       jal quit        
+
+
+
+
+starting_viruses:
+
+  push ($ra)
+
+  # x, y coordinates for yellow capsule
+
+  li $t1 0xFFCE55
+
+  li $t3 3
+  
+  li $v0 42
+  li $a0 0
+  li $a1 13
+
+  syscall
+
+  multu $t3 $a0                     # set the number of pixels to choose
+  mflo $v1             
+
+  addi $a0 $v1 17
+
+  push ($a0)
+
+  li $v0 42
+  li $a0 0
+  li $a1 8
+
+  syscall
+
+  multu $t3 $a0                     # set the number of pixels to choose
+  mflo $v0   
+
+  addi $a0 $a0 26
+
+  push ($a0)
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+  li $a2 2
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+  addi $a0 $a0 2
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  addi $a1 $a1 2
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+  
+
+  # x, y coordinates for apple green capsule
+
+  li $t1 0xDBF68F
+  
+  li $v0 42
+  li $a0 0
+  li $a1 13
+
+  syscall
+
+  addi $a0 $a0 29
+
+  push ($a0)
+
+  li $v0 42
+  li $a0 0
+  li $a1 8
+
+  syscall
+
+  addi $a0 $a0 28
+
+  push ($a0)
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+  li $a2 3
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+  addi $a1 $a1 2
+  li $a2 3
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  addi $a0 $a0 2
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+
+
+  # x, y coordinates for orange capsule
+
+  li $t1 0xF16838
+  
+  li $v0 42
+  li $a0 0
+  li $a1 13
+
+  syscall
+
+  addi $a0 $a0 42
+
+  push ($a0)
+
+  li $v0 42
+  li $a0 0
+  li $a1 8
+
+  syscall
+
+  addi $a0 $a0 36
+
+  push ($a0)
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+  li $a2 1
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+  addi $a0 $a0 2
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+  addi $a1 $a1 2
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  push ($a1)
+  push ($a0)
+
+
+  addi $a0 $a0 1
+  addi $a1 $a1 1
+
+  jal draw_rect
+
+  pop ($a0)
+  pop ($a1)
+
+  addi $a0 $a0 2
+  addi $a1 $a1 2
+
+  jal draw_rect
+
+
+  pop ($ra)
+
+  jr $ra
+  
+  
+
 
 
 
@@ -1229,7 +1445,7 @@ ycollision:
   
   beq $t2 $zero y_h_collision    # checking to see if it's horizonal orientation and jump
 
-  jal y_v_collision              # else jump to vertical branch  
+  j y_v_collision              # else jump to vertical branch  
   
   
   y_h_collision:
