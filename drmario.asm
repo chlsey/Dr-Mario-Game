@@ -201,6 +201,12 @@ COLOR2:
 NOTE_INDEX:
     .space 8            # ( 0x10018278 )        MERGEEEEEEEEEEEE
 
+X_COORDS:
+  .space 32
+
+Y_COORDS:
+  .space 52
+
 
     
 ##############################################################################
@@ -211,9 +217,12 @@ NOTE_INDEX:
 
     # Run the game.
 main:    
+
+    jal populate_virus_grid
+
     # setting inital block speed
     la $t0, DROP_SPD       # $t0 = location of original fall speed
-    li $t1 3000000         
+    li $t1 6000000         
     sw $t1 0($t0)          # load in the starting speed
     
     lw $t0, ADDR_DSPL       # $t0 = base address for display
@@ -321,7 +330,7 @@ keyboard_check_loop:
     # Timer has reached 0, move capsule down
    
     
-    # jal move_down  
+    jal move_down  
 
     timer_check:
     j game_loop                 # Restart main loop
@@ -384,6 +393,46 @@ keyboard_input:
 
 
 
+populate_virus_grid:
+  li $s0 8
+  li $s1 13
+  li $s2 20
+  li $s3 16
+
+  la $s4 X_COORDS
+  la $s5 Y_COORDS
+
+  li $s6 0             # x coord counter
+  li $s7 0             # y coord counter
+
+  x_loop:
+    
+    sw $s2 0($s4)
+    
+    addi $s2 $s2 3
+    addi $s6 $s6 1
+    addi $s4 $s4 4          # next x coord byte
+    
+    beq $s6 $s0 x_loop_end
+    j x_loop
+    
+  x_loop_end:
+  y_loop:
+  
+    sw $s3 0($s5)
+    
+    addi $s3 $s3 3
+    addi $s7 $s7 1
+    addi $s5 $s5 4          # next x coord byte
+    
+    beq $s7 $s1 y_loop_end
+    j y_loop
+
+  y_loop_end:
+    jr $ra
+
+
+
 starting_viruses:
 
   push ($ra)
@@ -391,8 +440,6 @@ starting_viruses:
   # x, y coordinates for yellow capsule
 
   li $t1 0xFFCE55
-
-  li $t3 3
   
   li $v0 42
   li $a0 0
@@ -400,10 +447,16 @@ starting_viruses:
 
   syscall
 
-  multu $t3 $a0                     # set the number of pixels to choose
-  mflo $v1             
+  la $s0 X_COORDS
+  la $s1 Y_COORDS
 
-  addi $a0 $v1 17
+  li $t3 4
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0            
+
+  add $s7 $v0 $s1 
+  lw $a0 0($s7)
 
   push ($a0)
 
@@ -416,12 +469,33 @@ starting_viruses:
   multu $t3 $a0                     # set the number of pixels to choose
   mflo $v0   
 
-  addi $a0 $a0 26
+  add $s7 $v0 $s0 
+  lw $a0 0($s7)
 
   push ($a0)
 
   pop ($a0)
   pop ($a1)
+
+
+# ORIENTATION GRID SET
+  la $t9 ORI_GRID
+
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  add $t7, $t9, $v0                    # Source: base + X offset
+  add $t7, $t7, $v1                    # Source: base + Y offset
+
+  li $t5 -1
+
+  sw $t5 0($t7)
 
   push ($a1)
   push ($a0)
@@ -463,7 +537,16 @@ starting_viruses:
 
   syscall
 
-  addi $a0 $a0 29
+  la $s0 X_COORDS
+  la $s1 Y_COORDS
+
+  li $t3 4
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0            
+
+  add $s7 $v0 $s1 
+  lw $a0 0($s7)
 
   push ($a0)
 
@@ -473,12 +556,36 @@ starting_viruses:
 
   syscall
 
-  addi $a0 $a0 28
+  multu $t3 $a0                     # set the number of pixels to choose
+  mflo $v0   
+
+  add $s7 $v0 $s0 
+  lw $a0 0($s7)
 
   push ($a0)
 
   pop ($a0)
   pop ($a1)
+
+  # ORIENTATION GRID SET
+  la $t9 ORI_GRID
+
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  add $t7, $t9, $v0                    # Source: base + X offset
+  add $t7, $t7, $v1                    # Source: base + Y offset
+
+  li $t5 -1
+
+  sw $t5 0($t7)
+
 
   push ($a1)
   push ($a0)
@@ -525,14 +632,22 @@ starting_viruses:
   # x, y coordinates for orange capsule
 
   li $t1 0xF16838
-  
   li $v0 42
   li $a0 0
   li $a1 13
 
   syscall
 
-  addi $a0 $a0 42
+  la $s0 X_COORDS
+  la $s1 Y_COORDS
+
+  li $t3 4
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0            
+
+  add $s7 $v0 $s1 
+  lw $a0 0($s7)
 
   push ($a0)
 
@@ -542,12 +657,36 @@ starting_viruses:
 
   syscall
 
-  addi $a0 $a0 36
+  multu $t3 $a0                     # set the number of pixels to choose
+  mflo $v0   
+
+  add $s7 $v0 $s0 
+  lw $a0 0($s7)
 
   push ($a0)
 
   pop ($a0)
   pop ($a1)
+
+  # ORIENTATION GRID SET
+  la $t9 ORI_GRID
+
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  add $t7, $t9, $v0                    # Source: base + X offset
+  add $t7, $t7, $v1                    # Source: base + Y offset
+
+  li $t5 -1
+
+  sw $t5 0($t7)
+
 
   push ($a1)
   push ($a0)
