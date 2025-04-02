@@ -227,6 +227,8 @@ main:
     
     jal draw_bottle
 
+    jal starting_viruses
+
     # 1: drawing the capsule at the bottle neck
     jal draw_start_capsule
     
@@ -321,6 +323,15 @@ keyboard_check_loop:
 
     timer_check:
     j game_loop                 # Restart main loop
+
+
+
+starting_viruses:
+  li $v0 42
+  li $a0 0
+  li $a1 0
+
+  
 
 
 
@@ -612,24 +623,35 @@ pause:
 
   jal copy_grid              # copy grid over to additional board
 
+  # draw to black
+
+  li $t1 0
+  
+  li $a0 0
+  li $a1 0
+  li $a2 64
+  li $a3 64
+
+  jal draw_rect
+
   li $t1 0xffffff
 
   li $a0 24
-  li $a1 25
+  li $a1 15
   li $a2 7
   li $a3 15
 
   jal draw_rect
 
   li $a0 33
-  li $a1 25
+  li $a1 15
   li $a2 7
   li $a3 15
 
   jal draw_rect
 
-  li $a0 24
-  li $a1 40
+  li $a0 2
+  li $a1 38
 
   jal draw_paused
   
@@ -658,6 +680,8 @@ pause:
     jr $ra
 
 
+
+
 quit:
   li $v0, 10                      # Quit gracefully
   syscall
@@ -668,13 +692,20 @@ quit:
 
 # keyboard helpers
 
-# - a0: where to begin writing
-# - a1: y coordinate of where to write
+
+###########################
+##  Pause Word Function  ##
+###########################
+# - a0: x-coorindate of where to begin writing
+# - a1: y-coordinate of where to write
 draw_paused:
   push ($ra)
 
-  li $a2 7
-  li $a3 3
+  # P
+
+  li $a2 9
+  li $a3 2
+  li $t1 0xffffff
 
   push ($a0)
   push ($a1)
@@ -684,10 +715,324 @@ draw_paused:
   pop ($a1)
   pop ($a0)
 
+  push ($a0)
+  push ($a1)
 
+  li $a2 3
+  li $a3 14
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 7
+  add $a1 $a1 2
+  li $a2 4
+  li $a3 3
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 2
+  add $a1 $a1 5
+  li $a2 7
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+
+
+  # A
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 12
+  add $a1 $a1 4
+  li $a2 3
+  li $a3 10
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 14
+  add $a1 $a1 2
+  li $a2 3
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 16
+  li $a2 4
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 19
+  add $a1 $a1 2
+  li $a2 3
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 21
+  add $a1 $a1 4
+  li $a2 3
+  li $a3 10
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 13
+  add $a1 $a1 8
+  li $a2 10
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+
+  # U
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 25
+  li $a2 3
+  li $a3 12
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 27
+  add $a1 $a1 12
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 33
+  li $a2 3
+  li $a3 14
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  # S
+  
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 39
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 37
+  add $a1 $a1 2
+  li $a2 3
+  li $a3 4
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 39
+  add $a1 $a1 6
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+  
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 46
+  add $a1 $a1 8
+  li $a2 3
+  li $a3 4
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 39
+  add $a1 $a1 12
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 46
+  add $a1 $a1 1
+  li $a2 3
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 37
+  add $a1 $a1 11
+  li $a2 3
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+
+  # E
+  
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 50
+  li $a2 3
+  li $a3 14
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+  
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 50
+  li $a2 10
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 50
+  add $a1 $a1 12
+  li $a2 10
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  add $a0 $a0 50
+  add $a1 $a1 6
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+  
   pop ($ra)
   jr $ra
-  
 
 
 
@@ -1385,11 +1730,11 @@ drop_row:
       li $t5 1
       beq $t4 $t5 drop_lone            # if it has no other half, drop itself
 
-      # li $t5 2
-      # beq $t4 $t5 drop_top            # its other half is on top, so we just drop
+      li $t5 2
+      beq $t4 $t5 drop_top            # its other half is on top, so we just drop
 
-      # li $t5 4
-      # beq $t4 $t5 drop_right            # its other half is to the right, then we need to check whether they have a free space below too
+      li $t5 4
+      beq $t4 $t5 drop_right            # its other half is to the right, then we need to check whether they have a free space below too
 
 
       drop_lone:
@@ -1434,148 +1779,148 @@ drop_row:
         j increment_next
 
 
-      # drop_right: # reminder: we are at the left half of this capsule
-      #   addi $s1 $t8 12
-      #   lw $t2 0($s1)
-      #   beq $t2 0 drop_lone
+      drop_right: # reminder: we are at the left half of this capsule
+        addi $s1 $t8 12
+        lw $t2 0($s1)
+        beq $t2 0 drop_lone
 
 
-      #   # need to do another check to see if other half has space below
-      #   add $t4 $s7 780               # getting location of the space below the right half
-      #   lw $t2 0($t4)                 # getting the color at the location
+        # need to do another check to see if other half has space below
+        add $t4 $s7 780               # getting location of the space below the right half
+        lw $t2 0($t4)                 # getting the color at the location
 
-      #   bne $t2 $t3 increment_next    # if it's not available, then we increment next and we don't have to 
-      #   # worry about handling the left half again because it won't go through the first if branch
+        bne $t2 $t3 increment_next    # if it's not available, then we increment next and we don't have to 
+        # worry about handling the left half again because it won't go through the first if branch
 
-      #   # else: drop both down
-      #   lw $t1 0($s7)                 # getting color of left half
-      #   addi $t2 $t7 12               # getting location of right half
-      #   lw $t3 0($t2)                 # getting color of right half
+        # else: drop both down
+        lw $t1 0($s7)                 # getting color of left half
+        addi $t2 $t7 12               # getting location of right half
+        lw $t3 0($t2)                 # getting color of right half
 
-      #   add $a0 $a0 $s5               # getting the x coordinate of the left capsule
+        add $a0 $a0 $s5               # getting the x coordinate of the left capsule
         
-      #   addi $a1 $a1 3                # move down by a block
+        addi $a1 $a1 3                # move down by a block
 
-      #   li $a2 3                      # setting size of cube to draw
-      #   li $a3 3
+        li $a2 3                      # setting size of cube to draw
+        li $a3 3
 
-      #   push ($a0)
-      #   push ($a1)
-      #   push ($t3)
+        push ($a0)
+        push ($a1)
+        push ($t3)
 
-      #   jal draw_rect                 # draw the left half in the new place
+        jal draw_rect                 # draw the left half in the new place
 
-      #   pop ($t3)
-      #   pop ($a1)
-      #   pop ($a0)
+        pop ($t3)
+        pop ($a1)
+        pop ($a0)
         
-      #   add $t1 $zero $t3             # changing t1 to the color of the right half
-      #   add $a0 $a0 3                 # getting the x coordinate of the right capsule
-      #   # y coord should be the same
+        add $t1 $zero $t3             # changing t1 to the color of the right half
+        add $a0 $a0 3                 # getting the x coordinate of the right capsule
+        # y coord should be the same
 
-      #   push ($a0)
-      #   push ($a1)
+        push ($a0)
+        push ($a1)
 
-      #   jal draw_rect                 # draw the right half of the capsule
+        jal draw_rect                 # draw the right half of the capsule
 
-      #   pop ($a1)
-      #   pop ($a0)
+        pop ($a1)
+        pop ($a0)
 
-      #   add $a0 $a0 -3                # moving back to the original coordinate to draw background color over
-      #   addi $a1 $a1 -3 
+        add $a0 $a0 -3                # moving back to the original coordinate to draw background color over
+        addi $a1 $a1 -3 
 
-      #   li $a2 6                      # changing width to 6
-      #   li $t1 0x266533               # background color
+        li $a2 6                      # changing width to 6
+        li $t1 0x266533               # background color
 
-      #   push ($a0)
-      #   push ($a1)
+        push ($a0)
+        push ($a1)
 
-      #   jal draw_rect                 # drawing over the background
+        jal draw_rect                 # drawing over the background
 
-      #   pop ($a1)
-      #   pop ($a0)
+        pop ($a1)
+        pop ($a0)
 
-      #    # taking care of orientation drops
+         # taking care of orientation drops
 
-      #   addi $t2 $t8 768              # moving down orientation offset by 3 pixels
-      #   li $t3 4                      # setting it as 4 because the half is on the right
+        addi $t2 $t8 768              # moving down orientation offset by 3 pixels
+        li $t3 4                      # setting it as 4 because the half is on the right
 
-      #   sw $t3 0($t2)                 # save the value of 4 at the new location where the capsule block is
-      #   sw $zero 0($t8)               # save a zero at the original location
+        sw $t3 0($t2)                 # save the value of 4 at the new location where the capsule block is
+        sw $zero 0($t8)               # save a zero at the original location
 
-      #   addi $t2 $t8 12               # moving to the right by 3 pixels to set the original location of the right half to 0 as well
-      #   sw $zero 0($t2)
+        addi $t2 $t8 12               # moving to the right by 3 pixels to set the original location of the right half to 0 as well
+        sw $zero 0($t2)
 
-      #   addi $t2 $t8 780              # moving to the bottom of the right half
-      #   li $t3 16                     # loading in 16 because the other half is on the left
-      #   sw $t3 0($t2)                 # saving 16 at the new location of the right half
+        addi $t2 $t8 780              # moving to the bottom of the right half
+        li $t3 16                     # loading in 16 because the other half is on the left
+        sw $t3 0($t2)                 # saving 16 at the new location of the right half
 
-      #   li $t9 1                      # change t9 to 1, meaning that we've a drop
+        li $t9 1                      # change t9 to 1, meaning that we've a drop
 
-      #   j increment_next
+        j increment_next
 
-      # drop_top:
-      #   addi $s1 $t8 -768
-      #   lw $t2 0($s1)
-      #   beq $t2 0 drop_lone
+      drop_top:
+        addi $s1 $t8 -768
+        lw $t2 0($s1)
+        beq $t2 0 drop_lone
 
-      #   lw $t4 0($s7)                 # getting color stored there again to move it down
-      #   addi $t3 $s7 -768             # getting location of friend
-      #   lw $t1 0($t3)                 # getting color of other half (setting it to t1 so that we can draw immediately)
+        lw $t4 0($s7)                 # getting color stored there again to move it down
+        addi $t3 $s7 -768             # getting location of friend
+        lw $t1 0($t3)                 # getting color of other half (setting it to t1 so that we can draw immediately)
 
-      #   add $a0 $a0 $s5               # getting the current x index
+        add $a0 $a0 $s5               # getting the current x index
 
-      #   li $a2 3                      # setting size of cube to draw
-      #   li $a3 3
+        li $a2 3                      # setting size of cube to draw
+        li $a3 3
 
-      #   push ($a0)
-      #   push ($a1)
-      #   push ($t4)
+        push ($a0)
+        push ($a1)
+        push ($t4)
 
-      #   jal draw_rect                 # drawing the top half in the current pixel
+        jal draw_rect                 # drawing the top half in the current pixel
 
-      #   pop ($t4)
-      #   pop ($a1)
-      #   pop ($a0)
+        pop ($t4)
+        pop ($a1)
+        pop ($a0)
 
-      #   add $t1 $zero $t4             # setting the color to draw as the bottom half color
-      #   add $a1 $a1 3                 # moving to the block area below
+        add $t1 $zero $t4             # setting the color to draw as the bottom half color
+        add $a1 $a1 3                 # moving to the block area below
 
-      #   push ($a0)
-      #   push ($a1)
+        push ($a0)
+        push ($a1)
 
-      #   jal draw_rect                 # drawing the bottom half in the current pixel
+        jal draw_rect                 # drawing the bottom half in the current pixel
 
-      #   pop ($a1)
-      #   pop ($a0)
+        pop ($a1)
+        pop ($a0)
 
-      #   add $a1 $a1 -6                # moving to the location of the top half
-      #   li $t1 0x266533               # load in background color
+        add $a1 $a1 -6                # moving to the location of the top half
+        li $t1 0x266533               # load in background color
 
-      #   push ($a0)
-      #   push ($a1)
+        push ($a0)
+        push ($a1)
         
-      #   jal draw_rect                 # drawing the top half location to background color
+        jal draw_rect                 # drawing the top half location to background color
 
-      #   pop ($a1)
-      #   pop ($a0)
+        pop ($a1)
+        pop ($a0)
 
-      #   # taking care of orientation drops too
+        # taking care of orientation drops too
 
-      #   addi $t2 $t8 768              # moving down orientation offset by 3 pixels
-      #   li $t3 2
+        addi $t2 $t8 768              # moving down orientation offset by 3 pixels
+        li $t3 2
 
-      #   sw $t3 0($t2)                 # load in the value of 2 at the new location where the bottom capsule block is
+        sw $t3 0($t2)                 # load in the value of 2 at the new location where the bottom capsule block is
 
-      #   addi $t2 $t8 768              # moving up the orientation offset by 3 pixels to set it to zero
-      #   sw $zero 0($t2)               # saving value of zero at the original spot of the top half 
+        addi $t2 $t8 768              # moving up the orientation offset by 3 pixels to set it to zero
+        sw $zero 0($t2)               # saving value of zero at the original spot of the top half 
 
-      #   li $t3 8
-      #   sw $t3 0($t8)                 # save 8 in the new location where the top capsule is
+        li $t3 8
+        sw $t3 0($t8)                 # save 8 in the new location where the top capsule is
 
-      #   li $t9 1                      # change t9 to 1, meaning that we've a drop
+        li $t9 1                      # change t9 to 1, meaning that we've a drop
 
-      #   j increment_next
+        j increment_next
 
 
     increment_next:
@@ -1924,12 +2269,7 @@ check_row:
     push ($t6)
     
     jal draw_rect           # call draw_rect to erase row
-    
-    # kate - gunshot
-    sleep (50)
-    play (60, 300, 127, 30, 10)
-    # sleep (100)
-    
+
     pop ($t6)
     pop ($a0)
     pop ($a1)
@@ -2231,12 +2571,7 @@ remove_columns:
     push ($t6)
     
     jal draw_rect           # call draw_rect to erase column
-    
-    # kate - gunshot
-    sleep (50)
-    play (60, 300, 127, 30, 10)
-    # sleep (100)
-    
+
     pop ($t6)
     pop ($a0)
     pop ($a1)
@@ -2383,8 +2718,6 @@ update_vertical_orientation:
 
     jr $ra
 
-  
-
 
 
 
@@ -2397,8 +2730,6 @@ update_vertical_orientation:
 # - #a1: Y coordinate of the top left corner of the capsule
 draw_start_capsule:
 
-  
-  
   # adding $ra to stack
   addi $sp, $sp, -4                # Move the stack pointer to an empty location
   sw $ra, 0($sp)                  # Store $ra on the stack for safe keeping.
@@ -2406,6 +2737,34 @@ draw_start_capsule:
   # generating a random value for the color + orientation
   addi $a0 $zero 29               # setting up x,y coordinates of the capsule
   addi $a1 $zero 13
+
+
+# initiating check for game over ;-;
+  lw $t0 ADDR_DSPL               # getting address of the playfield
+
+  addi $t3 $zero 4                  # store constant 4 in t3 so we can do multiplication with the x coordinate
+  addi $t4 $zero 256                # store constant 256 in t4 so we can do multiplication with the y coordinate
+
+  multu $t3 $a0                     # set the number of columns to skip through multiplication (X coordinate)
+  mflo $v0                          
+  
+  multu $t4 $a1                     # set the number of rows to skip through multiplication (Y coordinate)
+  mflo $v1
+
+  # setting offset in t7:
+  add $t7, $t0, $v0                    # Source: base + X offset
+  add $t7, $t7, $v1                    # Source: base + Y offset
+
+  lw $t3 0($t7)                     # loading in color at the bottle opening
+  bne $t3 0x266533 game_over_br     # if it's not background color, game over :(
+
+  j game_over_br_end
+
+  game_over_br:
+    jal game_over
+
+  game_over_br_end:
+  
 
   la $t3, CAPSULE_X               # loading x coordinate of starting capsule to memory
   sw $a0 0($t3)
@@ -2449,6 +2808,1206 @@ draw_start_capsule:
   addi $sp, $sp, 4                # move the stack pointer to the current top of the stack.
   
   jr $ra                          # return back to game_loop
+
+
+
+##########################
+##  Game Over Function  ##
+##########################
+#- loops for user input
+game_over:
+  li $t0 0                       # t0 keeps track of play again or quit (0 for try again default)
+
+  jal game_over_letters
+
+  # check keyboard for input
+
+  key_board_loop:
+  lw $t2, ADDR_KBRD           # Load keyboard base address
+  lw $t8, 0($t2)              # Read keyboard state
+  beq $t8, 1, which_key  # If key is pressed, handle it
+
+  j key_board_loop
+
+  which_key:
+    lw $t1, 4($t2)          # Load second word from keyboard
+
+    beq $t1 'a' select_retry
+
+    beq $t1 'd' select_quit
+
+    beq $t1, 's', enter_pressed  # If Enter (0x0A), handlae it
+    
+    
+  select_retry:
+
+    jal game_over_letters
+    
+    li $a0 4
+    li $a1 44
+    li $a2 31
+    li $a3 1
+
+    li $t1 0xD3D3D3
+
+    jal draw_rect
+
+    li $a0 4
+    li $a1 44
+    li $a2 1
+    li $a3 8
+
+    jal draw_rect
+
+    li $a0 34
+    li $a1 44
+    li $a2 1
+    li $a3 8
+
+    jal draw_rect
+
+    li $a0 4
+    li $a1 52
+    li $a2 31
+    li $a3 1
+
+    jal draw_rect
+
+    li $t0 0
+    
+    j key_board_loop
+
+
+
+  select_quit:
+    
+    jal game_over_letters
+    
+    li $a0 37
+    li $a1 44
+    li $a2 21
+    li $a3 1
+
+    li $t1 0xD3D3D3
+
+    jal draw_rect
+
+    li $a0 37
+    li $a1 44
+    li $a2 1
+    li $a3 8
+
+    jal draw_rect
+
+    li $a0 37
+    li $a1 52
+    li $a2 21
+    li $a3 1
+
+    jal draw_rect
+
+    li $a0 58
+    li $a1 44
+    li $a2 1
+    li $a3 9
+
+    jal draw_rect
+
+    li $t0 1
+
+    j key_board_loop
+
+
+  enter_pressed:
+
+    beq $t0 $zero retry_br
+
+    j quit 
+
+  retry_br:
+    
+    j main
+
+
+
+game_over_letters:
+  push ($ra)
+
+  li $a0 0
+  li $a1 0
+  li $a2 64
+  li $a3 64
+
+  li $t1 0
+
+  jal draw_rect
+  
+  li $a0 8
+  li $a1 14
+
+  li $t1 0xffffff
+  
+  jal letter_g
+
+  li $a0 21
+  li $a1 14
+
+  jal letter_a
+
+  li $a0 33
+  li $a1 14
+
+  jal letter_m
+
+  li $a0 48
+  li $a1 14
+
+  jal letter_e
+
+  li $a0 8
+  li $a1 27
+
+  jal letter_o
+
+  li $a0 20
+  li $a1 27
+
+  jal letter_v
+
+  li $a0 33
+  li $a1 27
+
+  jal letter_e
+
+  li $a0 45
+  li $a1 27
+
+  jal letter_r
+
+
+  # smaller
+
+  li $a0 6
+  li $a1 46
+
+  jal letter_sr
+
+  li $a0 12
+  li $a1 46
+
+  jal letter_se
+
+  li $a0 17
+  li $a1 46
+
+  jal letter_st
+
+
+  li $a0 23
+  li $a1 46
+
+  jal letter_sr
+
+
+  li $a0 29
+  li $a1 46
+
+  jal letter_sy
+
+
+  li $a0 39
+  li $a1 46
+
+  jal letter_sq
+
+
+  li $a0 45
+  li $a1 46
+
+  jal letter_su
+
+
+  li $a0 50
+  li $a1 46
+
+  jal letter_si
+
+
+  li $a0 52
+  li $a1 46
+
+  jal letter_st
+
+  pop ($ra)
+
+  jr $ra
+
+
+
+letter_si:
+  push ($ra)
+  
+  li $a2 1
+  li $a3 5
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+
+  end_si:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
+letter_su:
+  push ($ra)
+  
+  li $a2 1
+  li $a3 5
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 4
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 3
+  addi $a1 $a1 0
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+
+  end_su:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
+letter_sq:
+  push ($ra)
+  
+  li $a2 1
+  li $a3 5
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 0
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 4
+  addi $a1 $a1 0
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 4
+  li $a2 5
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 0
+  li $a2 5
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 3
+  addi $a1 $a1 3
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  end_sq:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
+
+
+letter_sy:
+  push ($ra)
+  
+  li $a2 1
+  li $a3 3
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 3
+  addi $a1 $a1 0
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 2
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 4
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  end_sy:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
+
+
+
+letter_st:
+  push ($ra)
+  
+  li $a2 5
+  li $a3 1
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 2
+  addi $a1 $a1 0
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  end_st:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
+
+
+letter_se:
+  push ($ra)
+  
+  li $a2 4
+  li $a3 1
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 0
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 2
+  li $a2 3
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 4
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+  
+
+  end_se:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
+
+
+
+
+letter_sr:
+  push ($ra)
+  
+  li $a2 4
+  li $a3 1
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 0
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 2
+  li $a2 4
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 3
+  addi $a1 $a1 0
+  li $a2 1
+  li $a3 5
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 2
+  addi $a1 $a1 2
+  li $a2 2
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 3
+  addi $a1 $a1 1
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 3
+  addi $a1 $a1 4
+  li $a2 2
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+
+  end_sr:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
+
+letter_r:
+  push ($ra)
+  
+  li $a2 4
+  li $a3 10
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 0
+  li $a2 11
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 4
+  li $a2 11
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 9
+  addi $a1 $a1 0
+  li $a2 2
+  li $a3 10
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 6
+  addi $a1 $a1 4
+  li $a2 5
+  li $a3 4
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 11
+  addi $a1 $a1 8
+  li $a2 2
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 11
+  addi $a1 $a1 2
+  li $a2 2
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+
+
+
+  end_r:
+    pop ($ra)
+
+    jr $ra
+
+
+
+letter_v:
+  push ($ra)
+  
+  li $a2 4
+  li $a3 7
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 2
+  addi $a1 $a1 7
+  li $a2 7
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 4
+  addi $a1 $a1 9
+  li $a2 3
+  li $a3 1
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 7
+  addi $a1 $a1 0
+  li $a2 4
+  li $a3 7
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  end_v:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
+
+letter_o:
+  push ($ra)
+  
+  li $a2 8
+  li $a3 2
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 -2
+  addi $a1 $a1 2
+  li $a2 3
+  li $a3 6
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 6
+  addi $a1 $a1 2
+  li $a2 4
+  li $a3 6
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 8
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  end_o:
+    pop ($ra)
+
+    jr $ra
+
+
+
+letter_e:
+  push ($ra)
+  
+  li $a2 4
+  li $a3 10
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 0
+  li $a2 10
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 4
+  li $a2 8
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 8
+  li $a2 10
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  end_e:
+    pop ($ra)
+
+    jr $ra
+
+
+
+letter_m:
+  push ($ra)
+  
+  li $a2 4
+  li $a3 10
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 4
+  addi $a1 $a1 2
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 5
+  addi $a1 $a1 3
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 6
+  addi $a1 $a1 4
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 7
+  addi $a1 $a1 3
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 8
+  addi $a1 $a1 2
+  li $a2 1
+  li $a3 3
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 9
+  addi $a1 $a1 0
+  li $a2 4
+  li $a3 10
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+
+  end_m:
+    pop ($ra)
+
+    jr $ra
+
+
+
+letter_a:
+  push ($ra)
+  
+  li $a2 8
+  li $a3 2
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 -2
+  addi $a1 $a1 2
+  li $a2 3
+  li $a3 8
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 4
+  li $a2 7
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 7
+  addi $a1 $a1 2
+  li $a2 3
+  li $a3 8
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  end_a:
+    pop ($ra)
+
+    jr $ra
+
+  
+
+  letter_g:
+  push ($ra)
+  
+  li $a0 8
+  li $a1 14
+  li $a2 9
+  li $a3 2
+
+  push ($a0)
+  push ($a1)
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 -2
+  addi $a1 $a1 2
+  li $a2 4
+  li $a3 6
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 3
+  addi $a1 $a1 4
+  li $a2 6
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 5
+  addi $a1 $a1 4
+  li $a2 4
+  li $a3 6
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  push ($a0)
+  push ($a1)
+
+  addi $a0 $a0 0
+  addi $a1 $a1 8
+  li $a2 9
+  li $a3 2
+
+  jal draw_rect
+
+  pop ($a1)
+  pop ($a0)
+
+  end_g:
+    pop ($ra)
+
+    jr $ra
+
+
+
+
 
 
 
@@ -2792,12 +4351,22 @@ draw_vert_capsule:
 ####################################
 draw_bottle:
 
-  # drawing bottle head
-    addi $t1 $t1 0xF3F6EB     # $t1 = transparent color
-    
     addi $sp, $sp, -4                # Move the stack pointer to an empty location
     sw $ra, 0($sp)                  # Store $ra on the stack for safe keeping.
+
+  # bottle neck background color
+    li $t1 0x266533         # dark green colour
     
+    li $a0 29
+    li $a1 13
+    li $a2 6
+    li $a3 3
+
+    jal draw_rect
+
+  # drawing bottle head
+    addi $t1 $t1 0xF3F6EB     # $t1 = transparent color
+
     addi $a0 $zero 24        # setting the x pos of line
     addi $a1 $zero 9        # setting the y pos of line
     addi $a2 $zero 17       # setting width of the line
@@ -3099,4 +4668,4 @@ add_draw_hline:
 
 
 
-
+    
