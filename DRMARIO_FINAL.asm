@@ -6424,6 +6424,13 @@ draw_mario:
 
   jal draw_rect
 
+  li $a0 51
+  li $a1 27
+  li $a2 6
+  li $a3 1
+
+  jal draw_rect
+
 
 # hat
 
@@ -7101,6 +7108,3 @@ draw_big_cap:
 
   jr $ra
 
-
-
-    
